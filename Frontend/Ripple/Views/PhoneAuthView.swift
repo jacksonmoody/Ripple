@@ -8,6 +8,7 @@ struct PhoneAuthView: View {
     @State private var verificationCode = ""
     @State private var codeSent = false
     @State private var isAnimating = false
+    @State private var errorMessage: String?
     @FocusState private var focusedField: Field?
 
     private enum Field { case phone, code }
@@ -44,7 +45,17 @@ struct PhoneAuthView: View {
                     phoneEntryField
                 }
 
-                Button(action: codeSent ? verifyCode : sendCode) {
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+
+                Button {
+                    Task { codeSent ? await verifyCode() : await sendCode() }
+                } label: {
                     HStack(spacing: 8) {
                         Text(codeSent ? "Verify" : "Send Code")
                             .font(.headline)
@@ -148,24 +159,39 @@ struct PhoneAuthView: View {
         return "(\(area)) \(mid)-\(last)"
     }
 
-    private func sendCode() {
-        isAnimating = true
-        // Mock delay to simulate sending
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            isAnimating = false
-            withAnimation { codeSent = true }
-            focusedField = .code
-        }
+    private var fullPhoneNumber: String {
+        "+1\(phoneNumber.filter(\.isNumber))"
     }
 
-    private func verifyCode() {
+    private func sendCode() async {
         isAnimating = true
-        // Mock: accept any 6-digit code
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            isAnimating = false
-            appState.userPhoneNumber = "+1\(phoneNumber.filter(\.isNumber))"
+        errorMessage = nil
+        do {
+            try await AuthService.sendOTP(phoneNumber: fullPhoneNumber)
+            withAnimation { codeSent = true }
+            focusedField = .code
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isAnimating = false
+    }
+
+    private func verifyCode() async {
+        isAnimating = true
+        errorMessage = nil
+        do {
+            let result = try await AuthService.verifyOTP(
+                phoneNumber: fullPhoneNumber,
+                code: verificationCode
+            )
+            appState.userPhoneNumber = fullPhoneNumber
+            appState.sessionToken = result.token
+            appState.userId = result.userId
             appState.isAuthenticated = true
             onAuthenticated()
+        } catch {
+            errorMessage = error.localizedDescription
         }
+        isAnimating = false
     }
 }

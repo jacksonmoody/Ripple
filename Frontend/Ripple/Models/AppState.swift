@@ -13,6 +13,8 @@ class AppState {
     var currentScreen: AppScreen = .landing
     var isAuthenticated = false
     var userPhoneNumber: String = ""
+    var sessionToken: String = ""
+    var userId: String = ""
     var nudgedCount = 0
     var nudgedContactIDs: Set<String> = []
 }

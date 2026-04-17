@@ -45,6 +45,7 @@ struct ContentView: View {
             }
         }
         .animation(.easeInOut(duration: 0.35), value: appState.currentScreen)
+        .preferredColorScheme(.light)
         .task {
             if appState.hasSavedSession {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)

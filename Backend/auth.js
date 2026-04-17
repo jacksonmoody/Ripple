@@ -5,7 +5,17 @@ import { phoneNumber } from "better-auth/plugins";
 import { MongoClient } from "mongodb";
 import twilio from "twilio";
 
-const client = new MongoClient(process.env.MONGODB_URI);
+let cachedClient = null;
+
+async function getMongoClient() {
+  if (cachedClient) return cachedClient;
+  const client = new MongoClient(process.env.MONGODB_URI);
+  await client.connect();
+  cachedClient = client;
+  return client;
+}
+
+const client = await getMongoClient();
 const db = client.db();
 
 const twilioClient = twilio(
@@ -15,7 +25,7 @@ const twilioClient = twilio(
 const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 export const auth = betterAuth({
-  baseURL: process.env.BASE_URL || "http://localhost:3005",
+  baseURL: process.env.BASE_URL || "https://sway-ripple-backend.vercel.app",
   secret: process.env.BETTER_AUTH_SECRET,
   database: mongodbAdapter(db, { client }),
   plugins: [

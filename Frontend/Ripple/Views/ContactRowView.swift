@@ -30,14 +30,18 @@ struct ContactRowView: View {
                             .lineLimit(1)
                     }
 
-                    if contact.smartMatchScore > 0 {
-                        HStack(spacing: 2) {
-                            ForEach(0..<contact.smartMatchScore, id: \.self) { _ in
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 8))
-                            }
-                        }
-                        .foregroundStyle(.yellow)
+                    if contact.addressSource != .none {
+                        Label(
+                            contact.addressSource == .contactAddress ? "Address" :
+                            contact.addressSource == .smartMatch ? "SmartMatch" : "Area Code",
+                            systemImage: contact.addressSource == .contactAddress ? "mappin.circle.fill" :
+                                contact.addressSource == .smartMatch ? "checkmark.seal.fill" : "phone.circle"
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(
+                            contact.addressSource == .contactAddress ? .green :
+                            contact.addressSource == .smartMatch ? .blue : .gray
+                        )
                     }
                 }
             }

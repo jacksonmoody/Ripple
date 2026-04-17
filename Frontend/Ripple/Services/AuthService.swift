@@ -1,13 +1,7 @@
 import Foundation
 
 struct AuthService {
-    #if targetEnvironment(simulator)
-    static let baseURL = "http://localhost:3005"
-    #else
-    // When running on a physical device, use your Mac's local network IP
-    // Find it with: ifconfig | grep "inet " | grep -v 127.0.0.1
-    static let baseURL = "http://localhost:3005"
-    #endif
+    static let baseURL = "https://sway-ripple-backend.vercel.app"
 
     struct SendOTPResponse: Decodable {
         let success: Bool?
@@ -91,6 +85,20 @@ struct AuthService {
         let userId = (json["user"] as? [String: Any])?["id"] as? String ?? ""
 
         return (token: token, userId: userId)
+    }
+
+    static func validateSession(token: String) async -> Bool {
+        guard let url = URL(string: "\(baseURL)/api/me") else { return false }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else { return false }
+            return httpResponse.statusCode == 200
+        } catch {
+            return false
+        }
     }
 }
 

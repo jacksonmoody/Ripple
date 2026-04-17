@@ -12,9 +12,34 @@ enum AppScreen: Equatable {
 class AppState {
     var currentScreen: AppScreen = .landing
     var isAuthenticated = false
-    var userPhoneNumber: String = ""
-    var sessionToken: String = ""
-    var userId: String = ""
     var nudgedCount = 0
     var nudgedContactIDs: Set<String> = []
+
+    var userPhoneNumber: String = "" {
+        didSet { UserDefaults.standard.set(userPhoneNumber, forKey: "userPhoneNumber") }
+    }
+    var sessionToken: String = "" {
+        didSet { UserDefaults.standard.set(sessionToken, forKey: "sessionToken") }
+    }
+    var userId: String = "" {
+        didSet { UserDefaults.standard.set(userId, forKey: "userId") }
+    }
+
+    init() {
+        self.userPhoneNumber = UserDefaults.standard.string(forKey: "userPhoneNumber") ?? ""
+        self.sessionToken = UserDefaults.standard.string(forKey: "sessionToken") ?? ""
+        self.userId = UserDefaults.standard.string(forKey: "userId") ?? ""
+    }
+
+    var hasSavedSession: Bool {
+        !sessionToken.isEmpty && !userId.isEmpty
+    }
+
+    func clearSession() {
+        sessionToken = ""
+        userId = ""
+        userPhoneNumber = ""
+        isAuthenticated = false
+        currentScreen = .landing
+    }
 }

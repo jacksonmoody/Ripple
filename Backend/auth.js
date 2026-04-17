@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
-import { phoneNumber } from "better-auth/plugins";
+import { phoneNumber, bearer } from "better-auth/plugins";
 import { MongoClient } from "mongodb";
 import twilio from "twilio";
 
@@ -29,6 +29,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   database: mongodbAdapter(db, { client }),
   plugins: [
+    bearer(),
     phoneNumber({
       sendOTP: async ({ phoneNumber }, ctx) => {
         const verification = await twilioClient.verify.v2

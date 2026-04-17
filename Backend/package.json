@@ -1,12 +1,21 @@
 {
   "name": "ripple-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Ripple Backend API",
   "license": "ISC",
-  "author": "",
-  "type": "commonjs",
+  "author": "Jackson Moody and Andrew Zhao",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "better-auth": "^1.6.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongodb": "^7.1.1",
+    "twilio": "^5.13.1"
   }
 }

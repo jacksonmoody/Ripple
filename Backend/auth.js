@@ -66,5 +66,5 @@ export const auth = betterAuth({
       },
     }),
   ],
-  trustedOrigins: ["ripple://"],
+  trustedOrigins: (origin) => true,
 });

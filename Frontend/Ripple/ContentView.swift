@@ -3,9 +3,15 @@ import SwiftUI
 struct ContentView: View {
     @State private var appState = AppState()
     @State private var contactsManager = ContactsManager()
+    @State private var dataProvider: NetworkDataProvider?
+    @State private var isCheckingSession = true
 
     var body: some View {
         Group {
+            if isCheckingSession {
+                ProgressView()
+                    .tint(Color(red: 0.25, green: 0.4, blue: 0.85))
+            } else {
             switch appState.currentScreen {
             case .landing:
                 LandingView {
@@ -21,24 +27,41 @@ struct ContentView: View {
 
             case .contactsPermission:
                 ContactsPermissionView(contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .contactList }
+                    withAnimation { appState.currentScreen = .network }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
             case .contactList:
-                ContactListView(appState: appState, contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .success }
+                if let provider = dataProvider {
+                    ContactListView(appState: appState, contactsManager: contactsManager, provider: provider) {
+                        withAnimation { appState.currentScreen = .network }
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
-            case .success:
-                SuccessView(nudgedCount: appState.nudgedCount) {
-                    withAnimation { appState.currentScreen = .contactList }
+            case .network:
+                if let provider = dataProvider {
+                    NetworkView(appState: appState, contactsManager: contactsManager, provider: provider)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+            }
             }
         }
         .animation(.easeInOut(duration: 0.35), value: appState.currentScreen)
+        .preferredColorScheme(.light)
+        .task {
+            dataProvider = NetworkDataProvider(appState: appState, contactsManager: contactsManager)
+            if appState.hasSavedSession {
+                let valid = await AuthService.validateSession(token: appState.sessionToken)
+                if valid {
+                    appState.isAuthenticated = true
+                    appState.currentScreen = .network
+                } else {
+                    appState.clearSession()
+                }
+            }
+            isCheckingSession = false
+        }
     }
 }
 

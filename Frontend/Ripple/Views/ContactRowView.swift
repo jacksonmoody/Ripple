@@ -3,7 +3,7 @@ import SwiftUI
 struct ContactRowView: View {
     let contact: RippleContact
     let isSelected: Bool
-    let isNudged: Bool
+    let isRallied: Bool
 
     var body: some View {
         HStack(spacing: 14) {
@@ -13,9 +13,9 @@ struct ContactRowView: View {
                 HStack(spacing: 6) {
                     Text(contact.fullName)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(isNudged ? .secondary : .primary)
+                        .foregroundStyle(isRallied ? .secondary : .primary)
 
-                    if isNudged {
+                    if isRallied {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.green)
@@ -57,7 +57,7 @@ struct ContactRowView: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
         .contentShape(Rectangle())
-        .opacity(isNudged ? 0.6 : 1.0)
+        .opacity(isRallied ? 0.6 : 1.0)
     }
 
     private var avatar: some View {

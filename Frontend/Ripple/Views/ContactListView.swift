@@ -4,7 +4,8 @@ import SwiftUI
 struct ContactListView: View {
     @Bindable var appState: AppState
     @Bindable var contactsManager: ContactsManager
-    var onNudgeSent: () -> Void
+    @Bindable var provider: NetworkDataProvider
+    var onRallySent: () -> Void
 
     @State private var selectedIDs: Set<String> = []
     @State private var showMessageComposer = false
@@ -23,7 +24,7 @@ struct ContactListView: View {
         contactsManager.contacts.filter { selectedIDs.contains($0.id) }
     }
 
-    private var nudgeMessageBody: String {
+    private var rallyMessageBody: String {
         let election = selectedContacts
             .compactMap(\.upcomingElection)
             .first
@@ -54,7 +55,7 @@ struct ContactListView: View {
             .background(Color(red: 0.96, green: 0.97, blue: 1.0))
 
             if !selectedIDs.isEmpty {
-                nudgeButton
+                rallyButton
             }
         }
         .task {
@@ -66,7 +67,7 @@ struct ContactListView: View {
             MessageComposerView(
                 isPresented: $showMessageComposer,
                 recipients: selectedContacts.compactMap(\.primaryPhoneNumber),
-                messageBody: nudgeMessageBody,
+                messageBody: rallyMessageBody,
                 onResult: handleMessageResult
             )
             .ignoresSafeArea()
@@ -85,12 +86,12 @@ struct ContactListView: View {
                 }
                 Spacer()
 
-                if appState.nudgedCount > 0 {
+                if provider.ralliedCount > 0 {
                     VStack(spacing: 2) {
-                        Text("\(appState.nudgedCount)")
+                        Text("\(provider.ralliedCount)")
                             .font(.title3.bold())
                             .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
-                        Text("nudged")
+                        Text("rallied")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -122,10 +123,10 @@ struct ContactListView: View {
                     ContactRowView(
                         contact: contact,
                         isSelected: selectedIDs.contains(contact.id),
-                        isNudged: appState.nudgedContactIDs.contains(contact.id)
+                        isRallied: provider.ralliedContactIDs.contains(contact.id)
                     )
                     .onTapGesture {
-                        guard !appState.nudgedContactIDs.contains(contact.id) else { return }
+                        guard !provider.ralliedContactIDs.contains(contact.id) else { return }
                         withAnimation(.easeInOut(duration: 0.15)) {
                             if selectedIDs.contains(contact.id) {
                                 selectedIDs.remove(contact.id)
@@ -155,7 +156,7 @@ struct ContactListView: View {
         }
     }
 
-    private var nudgeButton: some View {
+    private var rallyButton: some View {
         Button {
             if MFMessageComposeViewController.canSendText() {
                 showMessageComposer = true
@@ -163,7 +164,7 @@ struct ContactListView: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "paperplane.fill")
-                Text("Send Nudge (\(selectedIDs.count))")
+                Text("Send Rally (\(selectedIDs.count))")
                     .font(.headline)
             }
             .foregroundStyle(.white)
@@ -180,10 +181,9 @@ struct ContactListView: View {
 
     private func handleMessageResult(_ result: MessageComposeResult) {
         if result == .sent {
-            appState.nudgedCount += selectedIDs.count
-            appState.nudgedContactIDs.formUnion(selectedIDs)
+            provider.recordRallies(selectedContacts)
             selectedIDs.removeAll()
-            onNudgeSent()
+            onRallySent()
         }
     }
 }

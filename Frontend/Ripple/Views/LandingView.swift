@@ -32,7 +32,7 @@ struct LandingView: View {
                         .font(.system(size: 52, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
 
-                    Text("Your vote creates a ripple.")
+                    Text("Your voice creates a ripple.")
                         .font(.title3)
                         .foregroundStyle(.white.opacity(0.85))
                 }
@@ -42,7 +42,7 @@ struct LandingView: View {
                 Spacer()
 
                 VStack(spacing: 16) {
-                    Text("Nudge your friends and family to vote.\nOne text at a time.")
+                    Text("Make a difference, one text at a time.")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.center)

@@ -30,8 +30,8 @@ struct ContactListView: View {
             .first
 
         let electionPhrase = election.map { "the \($0.name)" } ?? "the upcoming election"
-        let link = DeepLinkGenerator.inviteLink(forUser: appState.userPhoneNumber)
-        return "Hey! Are you voting in \(electionPhrase)? Make sure your voice is heard! Join me on Ripple: \(link)"
+        let link = DeepLinkGenerator.inviteLink(forUser: appState.userId)
+        return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(link)"
     }
 
     var body: some View {
@@ -77,13 +77,18 @@ struct ContactListView: View {
     private var header: some View {
         VStack(spacing: 4) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Your Contacts")
-                        .font(.title.bold())
-                    Text("\(contactsManager.contacts.count) contacts with phone numbers")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Button {
+                    appState.currentScreen = .network
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Back")
+                            .font(.body)
+                    }
+                    .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
                 }
+
                 Spacer()
 
                 if provider.ralliedCount > 0 {
@@ -99,7 +104,13 @@ struct ContactListView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 8)
+            .padding(.bottom, 4)
+
+            Text("Your Contacts")
+                .font(.title.bold())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
         }
     }
 
@@ -123,7 +134,8 @@ struct ContactListView: View {
                     ContactRowView(
                         contact: contact,
                         isSelected: selectedIDs.contains(contact.id),
-                        isRallied: provider.ralliedContactIDs.contains(contact.id)
+                        isRallied: provider.ralliedContactIDs.contains(contact.id),
+                        isSignedUp: provider.signedUpContactIDs.contains(contact.id)
                     )
                     .onTapGesture {
                         guard !provider.ralliedContactIDs.contains(contact.id) else { return }

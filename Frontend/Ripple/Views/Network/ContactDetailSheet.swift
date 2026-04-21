@@ -4,14 +4,14 @@ import UIKit
 
 struct ContactDetailSheet: View {
     let contact: NetworkContact
-    let userPhoneNumber: String
+    let userId: String
 
     @State private var showMessageComposer = false
 
     private var messageBody: String {
         let electionPhrase = contact.upcomingElection.map { "the \($0.name)" } ?? "the upcoming election"
-        let link = DeepLinkGenerator.inviteLink(forUser: userPhoneNumber)
-        return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(link)"
+        let link = DeepLinkGenerator.inviteLink(forUser: userId)
+        return "Hey, I've been thinking about \(electionPhrase) and wanted to remind you to vote in it. Join me on Ripple to help spread the word! \(link)"
     }
 
     var body: some View {
@@ -104,28 +104,6 @@ struct ContactDetailSheet: View {
                 detailRow(icon: "calendar", label: "Election", value: election.name)
             }
 
-            if contact.smartMatchScore > 0 {
-                HStack(spacing: 10) {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .frame(width: 20)
-
-                    Text("Civic Score")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.5))
-
-                    Spacer()
-
-                    HStack(spacing: 2) {
-                        ForEach(0..<contact.smartMatchScore, id: \.self) { _ in
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.yellow)
-                        }
-                    }
-                }
-            }
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 14)

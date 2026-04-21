@@ -8,39 +8,50 @@ struct LeaderboardTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
+                // 1. Leaderboard
                 if provider.leaderboardEntries.count >= 3 {
-                    // Podium for top 3
                     podium
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
 
-                    // Remaining ranked rows
                     if provider.leaderboardEntries.count > 3 {
                         rankedList
                             .padding(.horizontal, 18)
                     }
-
-                    // Your rank callout
-                    if let rank = provider.currentUserRank {
-                        rankCallout(rank: rank)
-                            .padding(.horizontal, 18)
-                            .padding(.top, 12)
-                    }
                 } else {
-                    // Not enough users for a full leaderboard
-                    userStatsHero
-                        .padding(.horizontal, 18)
-                        .padding(.top, 12)
-
-                    ralliedBreakdown
+                    fallbackLeaderboard
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
                 }
 
-                // CTA
+                // 2. Rank callout
+                if let rank = provider.currentUserRank {
+                    rankCallout(rank: rank)
+                        .padding(.horizontal, 18)
+                        .padding(.top, 12)
+                }
+
+                // 3. Score breakdown
+                scoreBreakdownSection
+                    .padding(.horizontal, 18)
+                    .padding(.top, 16)
+
+                // 4. Progress bar
+                progressBar
+                    .padding(.horizontal, 22)
+                    .padding(.top, 16)
+
+                // 5. Recent activity
+                if !provider.recentRallies.isEmpty {
+                    recentActivity
+                        .padding(.horizontal, 18)
+                        .padding(.top, 16)
+                }
+
+                // 6. CTA
                 ctaCard
                     .padding(.horizontal, 18)
-                    .padding(.top, 10)
+                    .padding(.top, 12)
                     .padding(.bottom, 20)
             }
         }
@@ -103,11 +114,14 @@ struct LeaderboardTab: View {
                 .foregroundStyle(.white)
                 .padding(.top, 5)
 
-            Text("\(entry.rallyCount)")
+            Text("\(entry.score)")
                 .font(.system(size: 19 + (scale - 1) * 5, weight: .bold))
                 .foregroundStyle(.white)
 
-            // Bar
+            Text("pts")
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.white.opacity(0.4))
+
             RoundedRectangle(cornerRadius: 7)
                 .fill(entry.rank == 1 ? .white.opacity(0.16) : .white.opacity(0.08))
                 .overlay(
@@ -124,7 +138,7 @@ struct LeaderboardTab: View {
 
     private var rankedList: some View {
         let entries = Array(provider.leaderboardEntries.dropFirst(3))
-        let maxRallies = provider.leaderboardEntries.first?.rallyCount ?? 1
+        let maxScore = provider.leaderboardEntries.first?.score ?? 1
 
         return VStack(spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
@@ -163,13 +177,13 @@ struct LeaderboardTab: View {
                                 .overlay(alignment: .leading) {
                                     Capsule()
                                         .fill(.white.opacity(0.5))
-                                        .frame(width: geo.size.width * CGFloat(entry.rallyCount) / CGFloat(max(maxRallies, 1)))
+                                        .frame(width: geo.size.width * CGFloat(entry.score) / CGFloat(max(maxScore, 1)))
                                 }
                         }
                         .frame(height: 3)
                     }
 
-                    Text("\(entry.rallyCount)")
+                    Text("\(entry.score)")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(minWidth: 18, alignment: .trailing)
@@ -192,6 +206,59 @@ struct LeaderboardTab: View {
         )
     }
 
+    // MARK: - Fallback Leaderboard (< 3 users)
+
+    private var fallbackLeaderboard: some View {
+        VStack(spacing: 12) {
+            ForEach(provider.leaderboardEntries) { entry in
+                HStack(spacing: 11) {
+                    Text("#\(entry.rank)")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(.white.opacity(0.42))
+                        .frame(width: 28)
+
+                    if let url = entry.avatarURL {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Text(entry.initials)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(entry.textColor)
+                        }
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                    } else {
+                        Text(entry.initials)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(entry.textColor)
+                            .frame(width: 40, height: 40)
+                            .background(entry.color, in: Circle())
+                    }
+
+                    Text(entry.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    Text("\(entry.score) pts")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(.white.opacity(entry.isUser ? 0.14 : 0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 13)
+                                .stroke(.white.opacity(entry.isUser ? 0.25 : 0.1), lineWidth: 1)
+                        )
+                )
+            }
+        }
+    }
+
     // MARK: - Rank Callout
 
     private func rankCallout(rank: Int) -> some View {
@@ -210,9 +277,9 @@ struct LeaderboardTab: View {
 
                 if rank > 1 {
                     let target = provider.leaderboardEntries.first(where: { $0.rank == rank - 1 })
-                    let diff = (target?.rallyCount ?? 0) - provider.ralliedCount
+                    let diff = (target?.score ?? 0) - provider.currentUserScore
                     if diff > 0 {
-                        Text("Rally \(diff) more to reach #\(rank - 1)")
+                        Text("\(diff) more points to reach #\(rank - 1)")
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.5))
                     }
@@ -232,117 +299,186 @@ struct LeaderboardTab: View {
         )
     }
 
-    // MARK: - Fallback: User Stats Hero (when not enough leaderboard data)
+    // MARK: - Score Breakdown
 
-    private var userStatsHero: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle().fill(.white.opacity(0.08)).frame(width: 90, height: 90)
-                    Circle().fill(.white.opacity(0.2)).frame(width: 72, height: 72)
-                        .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 1.5))
-                    Text("ME")
-                        .font(.system(size: 20, weight: .heavy))
-                        .foregroundStyle(NetworkColors.darkBlue)
-                        .frame(width: 60, height: 60)
-                        .background(.white, in: Circle())
-                }
-                Text("Your Stats")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-            }
+    private var scoreBreakdownSection: some View {
+        let bd = provider.scoreBreakdown
+        let textsSent = provider.stats?.textsSent ?? 0
+        let directSignups = provider.stats?.directSignups ?? 0
+        let secondDegree = provider.stats?.secondDegreeSignups ?? 0
 
-            HStack(spacing: 10) {
-                statBox(value: "\(provider.ralliedCount)", label: "Rallied")
-                statBox(value: "\(provider.contactsWithElections)", label: "w/ Elections")
-                statBox(value: "\(provider.totalContacts)", label: "Total Contacts")
-            }
-        }
-        .padding(.vertical, 20)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.white.opacity(0.1))
-                .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.15), lineWidth: 1))
-        )
-    }
-
-    private func statBox(value: String, label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value).font(.system(size: 22, weight: .bold)).foregroundStyle(.white)
-            Text(label).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.5))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white.opacity(0.1))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.white.opacity(0.12), lineWidth: 1))
-        )
-    }
-
-    // MARK: - Rallied Breakdown (fallback)
-
-    private var ralliedBreakdown: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("PEOPLE YOU'VE RALLIED")
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("YOUR SCORE")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.38))
                 .tracking(0.8)
 
-            if provider.ralliedContacts.isEmpty {
-                Text("No contacts rallied yet")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.4))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-            } else {
-                ForEach(Array(provider.ralliedContacts.enumerated()), id: \.element.id) { index, contact in
-                    HStack(spacing: 11) {
-                        Text("#\(index + 1)")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.38))
-                            .frame(width: 24)
+            VStack(spacing: 6) {
+                scoreRow(
+                    icon: "message.fill",
+                    label: "Texts sent",
+                    count: textsSent,
+                    multiplier: 10,
+                    points: bd?.textsPoints ?? 0
+                )
+                scoreRow(
+                    icon: "person.badge.plus",
+                    label: "Signups from your rallies",
+                    count: directSignups,
+                    multiplier: 50,
+                    points: bd?.signupsPoints ?? 0
+                )
+                scoreRow(
+                    icon: "person.2.fill",
+                    label: "Second-degree referrals",
+                    count: secondDegree,
+                    multiplier: 5,
+                    points: bd?.secondDegreePoints ?? 0
+                )
 
-                        if let avatarURL = contact.profileAvatarURL {
-                            AsyncImage(url: avatarURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Text(contact.initials)
-                                    .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
-                                    .frame(width: 34, height: 34)
-                                    .background(contact.avatarColor, in: Circle())
-                            }
-                            .frame(width: 34, height: 34).clipShape(Circle())
-                        } else if let image = contact.thumbnailImage {
-                            Image(uiImage: image)
-                                .resizable().scaledToFill()
-                                .frame(width: 34, height: 34).clipShape(Circle())
-                        } else {
-                            Text(contact.initials)
-                                .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
-                                .frame(width: 34, height: 34)
-                                .background(contact.avatarColor, in: Circle())
-                        }
+                Divider().background(.white.opacity(0.15))
 
-                        Text(contact.fullName)
-                            .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
+                HStack {
+                    Text("Total Score")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                    Spacer()
+                    Text("\(provider.currentUserScore) pts")
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundStyle(.white)
+                }
+                .padding(.top, 2)
+            }
+            .padding(.vertical, 14)
+            .padding(.horizontal, 15)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(NetworkColors.glassBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(NetworkColors.glassBorder, lineWidth: 1)
+                    )
+            )
+        }
+    }
 
-                    if index < provider.ralliedContacts.count - 1 {
-                        Divider().background(.white.opacity(0.08))
-                    }
+    private func scoreRow(icon: String, label: String, count: Int, multiplier: Int, points: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 11))
+                .foregroundStyle(.white.opacity(0.5))
+                .frame(width: 18)
+
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(.white.opacity(0.7))
+
+            Spacer()
+
+            Text("\(count) x \(multiplier)")
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.4))
+
+            Text("= \(points)")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(minWidth: 44, alignment: .trailing)
+        }
+    }
+
+    // MARK: - Progress Bar
+
+    private var progressBar: some View {
+        VStack(spacing: 5) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(.white.opacity(0.13))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.55), .white.opacity(0.88)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * provider.progressFraction)
+                        .animation(.easeOut(duration: 1.0), value: provider.progressFraction)
+                }
+            }
+            .frame(height: 7)
+
+            HStack {
+                Text("0")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.32))
+
+                Spacer()
+
+                Text("Goal: \(provider.goalTarget) pts \u{00B7} \(Int(provider.progressFraction * 100))% there")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.32))
+
+                Spacer()
+
+                Text("\(provider.goalTarget)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.32))
+            }
+        }
+    }
+
+    // MARK: - Recent Activity
+
+    private var recentActivity: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("RECENT ACTIVITY")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(0.38))
+                .tracking(0.8)
+
+            ForEach(provider.recentRallies, id: \.id) { rally in
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(.white.opacity(0.6))
+                        .frame(width: 8, height: 8)
+
+                    Text("You")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.75))
+                    + Text(" rallied \(rally.contactName)")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.white.opacity(0.75))
+
+                    Spacer()
+
+                    Text(relativeTime(from: rally.createdAt))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.3))
                 }
             }
         }
-        .padding(.vertical, 14).padding(.horizontal, 15)
-        .background(
-            RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.1), lineWidth: 1))
-        )
-    } 
+    }
+
+    private func relativeTime(from isoString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: isoString) else {
+            let f2 = ISO8601DateFormatter()
+            guard let date2 = f2.date(from: isoString) else { return "" }
+            return relativeTimeString(from: date2)
+        }
+        return relativeTimeString(from: date)
+    }
+
+    private func relativeTimeString(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        if interval < 60 { return "just now" }
+        if interval < 3600 { return "\(Int(interval / 60))m ago" }
+        if interval < 86400 { return "\(Int(interval / 3600))h ago" }
+        return "\(Int(interval / 86400))d ago"
+    }
 
     // MARK: - CTA
 
@@ -353,7 +489,7 @@ struct LeaderboardTab: View {
                     Text("Rally more contacts")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(NetworkColors.darkBlue)
-                    Text("Every rally counts toward your impact")
+                    Text("Every rally earns you 10 points")
                         .font(.system(size: 12))
                         .foregroundStyle(NetworkColors.darkBlue.opacity(0.55))
                 }

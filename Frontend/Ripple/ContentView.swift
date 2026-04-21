@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var appState = AppState()
+    @Bindable var appState: AppState
     @State private var contactsManager = ContactsManager()
     @State private var dataProvider: NetworkDataProvider?
     @State private var isCheckingSession = true
@@ -21,6 +21,7 @@ struct ContentView: View {
 
             case .phoneAuth:
                 PhoneAuthView(appState: appState) {
+                    submitPendingReferral()
                     withAnimation { appState.currentScreen = .contactsPermission }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
@@ -47,6 +48,12 @@ struct ContentView: View {
             }
             }
         }
+        .onOpenURL { url in
+            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let ref = components.queryItems?.first(where: { $0.name == "ref" })?.value,
+                  !ref.isEmpty else { return }
+            appState.pendingReferrerId = ref
+        }
         .animation(.easeInOut(duration: 0.35), value: appState.currentScreen)
         .preferredColorScheme(.light)
         .task {
@@ -63,8 +70,16 @@ struct ContentView: View {
             isCheckingSession = false
         }
     }
+    private func submitPendingReferral() {
+        guard let ref = appState.pendingReferrerId, !ref.isEmpty else { return }
+        let token = appState.sessionToken
+        appState.pendingReferrerId = nil
+        Task {
+            try? await NetworkService.submitReferral(referrerId: ref, token: token)
+        }
+    }
 }
 
 #Preview {
-    ContentView()
+    ContentView(appState: AppState())
 }

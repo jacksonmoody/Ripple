@@ -11,6 +11,9 @@ struct RippleGraphView: View {
     @State private var contactAvatarImages: [String: UIImage] = [:]
 
     private let ringRadii: [CGFloat] = [70, 120, 170]
+    private let maxDotsPerContact = 5
+    private let dotRadius: CGFloat = 5
+    private let dotSpreadRadius: CGFloat = 36
 
     var body: some View {
         GeometryReader { geo in
@@ -19,11 +22,9 @@ struct RippleGraphView: View {
             let r1: CGFloat = min(geo.size.width * 0.23, 100)
 
             ZStack {
-                // Canvas draws all the static + animated elements
                 Canvas { context, size in
                     let center = CGPoint(x: cx, y: cy)
 
-                    // Decorative pulsing rings
                     for (i, baseR) in ringRadii.enumerated() {
                         let scale = 1.0 + sin(pulsePhase + Double(i) * 0.8) * 0.03
                         let r = baseR * scale
@@ -54,12 +55,45 @@ struct RippleGraphView: View {
                         )
                     }
 
+                    // Second-degree dots + lines from ring-1 contacts
+                    for (i, pos) in nodePositions.enumerated() {
+                        guard i < contacts.count else { break }
+                        let contact = contacts[i]
+                        let count = min(contact.secondDegreeCount, maxDotsPerContact)
+                        guard count > 0 else { continue }
+
+                        let dotPositions = self.secondDegreePositions(
+                            around: pos.point,
+                            parentAngle: pos.angle,
+                            count: count
+                        )
+                        for dotPos in dotPositions {
+                            var line = Path()
+                            line.move(to: pos.point)
+                            line.addLine(to: dotPos)
+                            context.stroke(
+                                line,
+                                with: .color(.white.opacity(0.10)),
+                                style: StrokeStyle(lineWidth: 0.8, dash: [2, 4])
+                            )
+
+                            var dot = Path()
+                            dot.addEllipse(in: CGRect(
+                                x: dotPos.x - dotRadius,
+                                y: dotPos.y - dotRadius,
+                                width: dotRadius * 2,
+                                height: dotRadius * 2
+                            ))
+                            context.fill(dot, with: .color(.white.opacity(0.30)))
+                            context.stroke(dot, with: .color(.white.opacity(0.15)), lineWidth: 0.5)
+                        }
+                    }
+
                     // Ring 1 contact nodes
                     for (i, pos) in nodePositions.enumerated() {
                         guard i < contacts.count else { break }
                         let contact = contacts[i]
 
-                        // Outer glow
                         let glowRect = CGRect(
                             x: pos.point.x - 30, y: pos.point.y - 30,
                             width: 60, height: 60
@@ -80,6 +114,8 @@ struct RippleGraphView: View {
                             context.fill(mainPath, with: .color(contact.avatarColor))
                             let resolved = context.resolve(
                                 Image(uiImage: img)
+                                    .resizable()
+                                    .scaledToFill()
                             )
                             context.clipToLayer(opacity: 1) { ctx in
                                 var clipPath = Path()
@@ -102,24 +138,25 @@ struct RippleGraphView: View {
                             )
                         }
 
-                        // Badge
-                        let badgeCenter = CGPoint(x: pos.point.x + 18, y: pos.point.y - 18)
-                        let badgeRect = CGRect(
-                            x: badgeCenter.x - 11, y: badgeCenter.y - 11,
-                            width: 22, height: 22
-                        )
-                        var badgePath = Path()
-                        badgePath.addEllipse(in: badgeRect)
-                        context.fill(badgePath, with: .color(.white))
+                        if contact.secondDegreeCount > 0 {
+                            let badgeCenter = CGPoint(x: pos.point.x + 18, y: pos.point.y - 18)
+                            let badgeRect = CGRect(
+                                x: badgeCenter.x - 11, y: badgeCenter.y - 11,
+                                width: 22, height: 22
+                            )
+                            var badgePath = Path()
+                            badgePath.addEllipse(in: badgeRect)
+                            context.fill(badgePath, with: .color(.white))
 
-                        let badgeText = Text("1")
-                            .font(.system(size: 9, weight: .heavy))
-                            .foregroundColor(NetworkColors.darkBlue)
-                        context.draw(
-                            context.resolve(badgeText),
-                            at: badgeCenter,
-                            anchor: .center
-                        )
+                            let badgeText = Text("\(contact.secondDegreeCount)")
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(NetworkColors.darkBlue)
+                            context.draw(
+                                context.resolve(badgeText),
+                                at: badgeCenter,
+                                anchor: .center
+                            )
+                        }
                     }
 
                     // Center user node
@@ -138,6 +175,8 @@ struct RippleGraphView: View {
                     if let avatarImg = userAvatarImage {
                         let resolved = context.resolve(
                             Image(uiImage: avatarImg)
+                                .resizable()
+                                .scaledToFill()
                         )
                         let avatarRect = CGRect(x: center.x - 26, y: center.y - 26, width: 52, height: 52)
                         context.clipToLayer(opacity: 1) { ctx in
@@ -222,6 +261,19 @@ struct RippleGraphView: View {
             let x = cx + CGFloat(cos(angle)) * r1
             let y = cy + CGFloat(sin(angle)) * r1
             return NodePosition(point: CGPoint(x: x, y: y), angle: angle)
+        }
+    }
+
+    private func secondDegreePositions(around parent: CGPoint, parentAngle: Double, count: Int) -> [CGPoint] {
+        guard count > 0 else { return [] }
+        let spread: Double = count == 1 ? 0 : min(Double.pi * 0.6, Double(count - 1) * 0.35)
+        let startAngle = parentAngle - spread / 2
+
+        return (0..<count).map { i in
+            let angle = count == 1 ? parentAngle : startAngle + spread * Double(i) / Double(count - 1)
+            let x = parent.x + CGFloat(cos(angle)) * dotSpreadRadius
+            let y = parent.y + CGFloat(sin(angle)) * dotSpreadRadius
+            return CGPoint(x: x, y: y)
         }
     }
 }

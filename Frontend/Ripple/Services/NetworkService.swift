@@ -38,6 +38,7 @@ enum NetworkService {
     struct ContactProfile: Decodable {
         let name: String?
         let avatarUrl: String?
+        let secondDegreeCount: Int?
     }
 
     struct RalliesResponse: Decodable {
@@ -65,14 +66,14 @@ enum NetworkService {
         let rank: Int
         let userId: String
         let name: String
-        let rallyCount: Int
+        let score: Int
         let isCurrentUser: Bool
         let avatarUrl: String?
     }
 
     struct CurrentUserStats: Decodable {
         let rank: Int?
-        let rallyCount: Int
+        let score: Int
     }
 
     struct LeaderboardResponse: Decodable {
@@ -101,8 +102,19 @@ enum NetworkService {
         let createdAt: String
     }
 
+    struct ScoreBreakdown: Decodable {
+        let textsPoints: Int
+        let signupsPoints: Int
+        let secondDegreePoints: Int
+    }
+
     struct StatsResponse: Decodable {
         let rallyCount: Int
+        let textsSent: Int
+        let directSignups: Int
+        let secondDegreeSignups: Int
+        let score: Int
+        let breakdown: ScoreBreakdown
         let totalUsersRallying: Int
         let totalRalliesNetwork: Int
         let recentRallies: [RecentRally]
@@ -125,6 +137,7 @@ enum NetworkService {
     struct ProfileResponse: Decodable {
         let id: String
         let name: String?
+        let email: String?
         let phoneNumber: String?
         let createdAt: String?
         let rallyCount: Int
@@ -146,19 +159,22 @@ enum NetworkService {
         return try JSONDecoder().decode(ProfileResponse.self, from: data)
     }
 
-    struct UpdateNameResponse: Decodable {
+    struct UpdateProfileResponse: Decodable {
         let success: Bool
-        let name: String
+        let name: String?
+        let email: String?
     }
 
-    static func updateName(name: String, token: String) async throws -> UpdateNameResponse {
+    static func updateProfile(name: String? = nil, email: String? = nil, token: String) async throws -> UpdateProfileResponse {
         let url = URL(string: "\(baseURL)/api/profile")!
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        let body = ["name": name]
+        var body: [String: String] = [:]
+        if let name { body["name"] = name }
+        if let email { body["email"] = email }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -166,7 +182,7 @@ enum NetworkService {
             throw NetworkServiceError.requestFailed
         }
 
-        return try JSONDecoder().decode(UpdateNameResponse.self, from: data)
+        return try JSONDecoder().decode(UpdateProfileResponse.self, from: data)
     }
     // MARK: - Avatar
 
@@ -205,6 +221,24 @@ enum NetworkService {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+    }
+
+    // MARK: - Referral
+
+    static func submitReferral(referrerId: String, token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/referral")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = ["referrerId": referrerId]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {

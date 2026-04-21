@@ -4,6 +4,7 @@ struct ContactRowView: View {
     let contact: RippleContact
     let isSelected: Bool
     let isRallied: Bool
+    var isSignedUp: Bool = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -20,31 +21,26 @@ struct ContactRowView: View {
                             .font(.caption)
                             .foregroundStyle(.green)
                     }
+
+                    if isSignedUp {
+                        Text("On Ripple")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color(red: 0.25, green: 0.4, blue: 0.85), in: Capsule())
+                    }
                 }
 
-                HStack(spacing: 8) {
-                    if let election = contact.upcomingElection {
-                        Label(election.name, systemImage: "calendar.badge.exclamationmark")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .lineLimit(1)
-                    }
-
-                    if contact.smartMatchScore > 0 {
-                        HStack(spacing: 2) {
-                            ForEach(0..<contact.smartMatchScore, id: \.self) { _ in
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 8))
-                            }
-                        }
-                        .foregroundStyle(.yellow)
-                    }
+                if let election = contact.upcomingElection {
+                    Label(election.name, systemImage: "calendar.badge.exclamationmark")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
                 }
             }
 
             Spacer()
-
-            priorityBadge
 
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                 .font(.title3)
@@ -74,23 +70,4 @@ struct ContactRowView: View {
         .clipShape(Circle())
     }
 
-    private var priorityBadge: some View {
-        Group {
-            if contact.priorityScore >= 5 {
-                Text("HIGH")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(.red, in: Capsule())
-            } else if contact.priorityScore >= 3 {
-                Text("MED")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(.orange, in: Capsule())
-            }
-        }
-    }
 }

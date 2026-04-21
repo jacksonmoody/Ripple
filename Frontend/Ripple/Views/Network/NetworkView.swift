@@ -17,13 +17,7 @@ struct NetworkView: View {
                 }
             }
 
-            Tab("Impact", systemImage: "chart.line.uptrend.xyaxis", value: .impact) {
-                tabPage(tab: .impact) {
-                    ImpactTab(provider: provider, onRallyMore: { withAnimation { appState.currentScreen = .contactList } })
-                }
-            }
-
-            Tab("Rankings", systemImage: "trophy", value: .leaderboard) {
+            Tab("Leaderboard", systemImage: "trophy", value: .leaderboard) {
                 tabPage(tab: .leaderboard) {
                     LeaderboardTab(provider: provider, onRallyMore: { withAnimation { appState.currentScreen = .contactList } })
                 }
@@ -37,7 +31,7 @@ struct NetworkView: View {
         }
         .tint(.white)
         .sheet(item: $selectedContact) { contact in
-            ContactDetailSheet(contact: contact, userPhoneNumber: appState.userPhoneNumber)
+            ContactDetailSheet(contact: contact, userId: appState.userId)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(
@@ -66,6 +60,9 @@ struct NetworkView: View {
                 header(for: tab)
                 content()
             }
+        }
+        .refreshable {
+            await provider.fetchAll()
         }
         .toolbarBackground(NetworkColors.tabBarBackground, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)

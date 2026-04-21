@@ -120,7 +120,9 @@ struct ProfileTab: View {
                 }
 
                 Button {
-                    nameInput = provider.userProfile?.name ?? ""
+                    let existingName = provider.userProfile?.name
+                    let contactName = provider.ownContactName
+                    nameInput = existingName ?? contactName ?? ""
                     isEditingName = true
                 } label: {
                     HStack(spacing: 4) {
@@ -168,7 +170,6 @@ struct ProfileTab: View {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 9) {
                 statCard(value: "\(provider.userProfile?.rallyCount ?? provider.ralliedCount)", label: "Total rallies")
                 statCard(value: "\(provider.userProfile?.uniqueContactsRallied ?? 0)", label: "People rallied")
-                statCard(value: provider.daysToElection.map { "\($0)" } ?? "--", label: "Days to election")
                 statCard(value: memberSince, label: "Member since")
             }
         }
@@ -208,6 +209,11 @@ struct ProfileTab: View {
                 Divider().background(.white.opacity(0.08))
 
                 infoRow(icon: "person.fill", label: "Name", value: provider.userProfile?.name ?? "Not set")
+
+                if let email = provider.userProfile?.email ?? provider.ownContactEmail {
+                    Divider().background(.white.opacity(0.08))
+                    infoRow(icon: "envelope.fill", label: "Email", value: email)
+                }
 
                 Divider().background(.white.opacity(0.08))
 
@@ -304,10 +310,11 @@ struct ProfileTab: View {
         let token = appState.sessionToken
         guard !token.isEmpty, !nameInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        if let result = try? await NetworkService.updateName(name: nameInput, token: token) {
+        if let result = try? await NetworkService.updateProfile(name: nameInput, token: token) {
             provider.userProfile = NetworkService.ProfileResponse(
                 id: profile?.id ?? appState.userId,
-                name: result.name,
+                name: result.name ?? profile?.name,
+                email: profile?.email,
                 phoneNumber: profile?.phoneNumber,
                 createdAt: profile?.createdAt,
                 rallyCount: profile?.rallyCount ?? 0,
@@ -350,6 +357,7 @@ struct ProfileTab: View {
             provider.userProfile = NetworkService.ProfileResponse(
                 id: profile?.id ?? appState.userId,
                 name: profile?.name,
+                email: profile?.email,
                 phoneNumber: profile?.phoneNumber,
                 createdAt: profile?.createdAt,
                 rallyCount: profile?.rallyCount ?? 0,

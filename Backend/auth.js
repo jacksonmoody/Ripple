@@ -15,9 +15,6 @@ async function getMongoClient() {
   return client;
 }
 
-const client = await getMongoClient();
-const db = client.db();
-
 export async function getDb() {
   const c = await getMongoClient();
   return c.db();
@@ -26,11 +23,6 @@ export async function getDb() {
 export function getAvatarBucket() {
   return new GridFSBucket(db, { bucketName: "avatars" });
 }
-
-// Ensure indexes for rallies collection
-db.collection("rallies")
-  .createIndex({ userId: 1, createdAt: -1 })
-  .catch(() => {});
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -61,7 +53,6 @@ export const auth = betterAuth({
           const cleaned = phone.replace(/\D/g, "");
           return `${cleaned}@ripple.app`;
         },
-        getTempName: (phone) => phone,
       },
     }),
   ]

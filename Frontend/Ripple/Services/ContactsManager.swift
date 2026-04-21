@@ -1,6 +1,11 @@
 import Contacts
 import SwiftUI
 
+struct OwnContactInfo {
+    let fullName: String?
+    let email: String?
+}
+
 @Observable
 class ContactsManager {
     var authorizationStatus: CNAuthorizationStatus = .notDetermined
@@ -11,6 +16,22 @@ class ContactsManager {
 
     init() {
         authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+    }
+
+    func lookupOwnContact(phoneNumber: String) -> OwnContactInfo? {
+        guard authorizationStatus == .authorized else { return nil }
+        let normalized = phoneNumber.filter(\.isNumber).suffix(10).description
+
+        for contact in contacts {
+            guard let phone = contact.primaryPhoneNumber else { continue }
+            let contactNorm = phone.filter(\.isNumber).suffix(10).description
+            if contactNorm == normalized {
+                let name = contact.fullName.isEmpty ? nil : contact.fullName
+                let email = contact.contact.emailAddresses.first?.value as String?
+                return OwnContactInfo(fullName: name, email: email)
+            }
+        }
+        return nil
     }
 
     func requestAccess() async {
@@ -35,6 +56,7 @@ class ContactsManager {
             CNContactGivenNameKey as CNKeyDescriptor,
             CNContactFamilyNameKey as CNKeyDescriptor,
             CNContactPhoneNumbersKey as CNKeyDescriptor,
+            CNContactEmailAddressesKey as CNKeyDescriptor,
             CNContactThumbnailImageDataKey as CNKeyDescriptor,
             CNContactIdentifierKey as CNKeyDescriptor,
         ]

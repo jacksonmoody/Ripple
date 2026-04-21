@@ -30,9 +30,13 @@ router.get("/", async (req, res) => {
   const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3005}`;
   const hasAvatar = !!user?.avatarFileId;
 
+  const rawEmail = user?.email || null;
+  const email = rawEmail && !rawEmail.endsWith("@ripple.app") ? rawEmail : null;
+
   return res.json({
     id: userId,
     name: user?.name || null,
+    email,
     phoneNumber: user?.phoneNumber || req.session.user.phoneNumber || null,
     createdAt: user?.createdAt || null,
     rallyCount,
@@ -46,17 +50,26 @@ router.get("/", async (req, res) => {
 
 // PUT /api/profile — update the authenticated user's profile
 router.put("/", async (req, res) => {
-  const { name } = req.body;
-  if (typeof name !== "string" || name.trim().length === 0) {
-    return res.status(400).json({ error: "name is required" });
+  const { name, email } = req.body;
+
+  const updates = {};
+  if (typeof name === "string" && name.trim().length > 0) {
+    updates.name = name.trim();
+  }
+  if (typeof email === "string" && email.trim().length > 0) {
+    updates.email = email.trim().toLowerCase();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "name or email is required" });
   }
 
   const db = await getDb();
   await db
     .collection("user")
-    .updateOne({ _id: new ObjectId(req.session.user.id) }, { $set: { name: name.trim() } });
+    .updateOne({ _id: new ObjectId(req.session.user.id) }, { $set: updates });
 
-  return res.json({ success: true, name: name.trim() });
+  return res.json({ success: true, name: updates.name, email: updates.email });
 });
 
 export default router;

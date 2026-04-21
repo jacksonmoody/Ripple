@@ -23,6 +23,8 @@ class AppState {
         didSet { UserDefaults.standard.set(userId, forKey: "userId") }
     }
 
+    var pendingReferrerId: String?
+
     init() {
         self.userPhoneNumber = UserDefaults.standard.string(forKey: "userPhoneNumber") ?? ""
         self.sessionToken = UserDefaults.standard.string(forKey: "sessionToken") ?? ""

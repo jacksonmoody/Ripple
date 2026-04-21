@@ -43,17 +43,30 @@ router.get("/", async (req, res) => {
     .toArray();
 
   const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3005}`;
+  const userIds = users.map((u) => u._id.toString());
+  const rallyCounts = userIds.length > 0
+    ? await db.collection("rallies")
+        .aggregate([
+          { $match: { userId: { $in: userIds } } },
+          { $group: { _id: "$userId", count: { $sum: 1 } } },
+        ])
+        .toArray()
+    : [];
+  const rallyCountMap = Object.fromEntries(rallyCounts.map((r) => [r._id, r.count]));
+
   const contactProfiles = {};
   for (const user of users) {
     const phone = user.phoneNumber;
     if (!phone) continue;
     const normalized = normalizePhone(phone);
     const hasName = user.name && !user.name.startsWith("+");
+    const uid = user._id.toString();
     contactProfiles[normalized] = {
       name: hasName ? user.name : null,
       avatarUrl: user.avatarFileId
-        ? `${baseURL}/api/profile/avatar/${user._id.toString()}`
+        ? `${baseURL}/api/profile/avatar/${uid}`
         : null,
+      secondDegreeCount: rallyCountMap[uid] || 0,
     };
   }
 

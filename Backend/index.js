@@ -9,6 +9,7 @@ import leaderboardRouter from "./routes/leaderboard.js";
 import statsRouter from "./routes/stats.js";
 import profileRouter from "./routes/profile.js";
 import avatarRouter from "./routes/avatar.js";
+import referralRouter from "./routes/referral.js";
 
 const app = express();
 const port = process.env.PORT || 3005;
@@ -46,6 +47,7 @@ app.use("/api/rallies", requireSession, ralliesRouter);
 app.use("/api/leaderboard", requireSession, leaderboardRouter);
 app.use("/api/stats", requireSession, statsRouter);
 app.use("/api/profile", requireSession, profileRouter);
+app.use("/api/referral", requireSession, referralRouter);
 
 app.listen(port, () => {
   console.log(`Ripple backend running on http://localhost:${port}`);

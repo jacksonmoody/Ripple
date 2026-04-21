@@ -5,14 +5,12 @@ import UIKit
 
 enum NetworkTab: String, CaseIterable {
     case network
-    case impact
     case leaderboard
     case profile
 
     var title: String {
         switch self {
         case .network: "Your Ripple"
-        case .impact: "Your Impact"
         case .leaderboard: "Leaderboard"
         case .profile: "Profile"
         }
@@ -47,6 +45,8 @@ struct NetworkContact: Identifiable {
     var smartMatchScore: Int { rippleContact.smartMatchScore }
     var thumbnailImage: UIImage? { rippleContact.thumbnailImage }
 
+    var secondDegreeCount: Int = 0
+
     var hasRippleProfile: Bool { profileName != nil || profileAvatarURL != nil }
 }
 
@@ -56,7 +56,7 @@ struct LeaderboardEntry: Identifiable {
     let id: String
     let name: String
     let initials: String
-    let rallyCount: Int
+    let score: Int
     let color: Color
     let textColor: Color
     let isUser: Bool

@@ -51,9 +51,6 @@ class NetworkDataProvider {
         if let lb = leaderboardResult {
             leaderboard = lb.leaderboard
             currentUserRank = lb.currentUser.rank
-            if currentUserRallyCount == 0 {
-                currentUserRallyCount = lb.currentUser.rallyCount
-            }
         }
 
         if let s = statsResult {
@@ -62,6 +59,7 @@ class NetworkDataProvider {
 
         if let p = profileResult {
             userProfile = p
+            await prefillProfileFromContacts(profile: p)
         }
     }
 
@@ -122,6 +120,7 @@ class NetworkDataProvider {
                         if let urlStr = profile.avatarUrl {
                             nc.profileAvatarURL = URL(string: urlStr)
                         }
+                        nc.secondDegreeCount = profile.secondDegreeCount ?? 0
                     }
                 }
                 return nc
@@ -132,26 +131,17 @@ class NetworkDataProvider {
         currentUserRallyCount
     }
 
-    // MARK: - Election stats
-
-    var daysToElection: Int? {
-        let now = Date()
-        let elections = contactsManager.contacts
-            .compactMap(\.upcomingElection)
-            .map(\.date)
-            .filter { $0 > now }
-
-        guard let nearest = elections.min() else { return nil }
-        return Calendar.current.dateComponents([.day], from: now, to: nearest).day
+    var signedUpContactIDs: Set<String> {
+        var ids = Set<String>()
+        for contact in contactsManager.contacts {
+            guard let phone = contact.primaryPhoneNumber else { continue }
+            if contactProfilesByPhone[normalizePhone(phone)] != nil {
+                ids.insert(contact.id)
+            }
+        }
+        return ids
     }
 
-    var contactsWithElections: Int {
-        contactsManager.contacts.filter { $0.upcomingElection != nil }.count
-    }
-
-    var totalContacts: Int {
-        contactsManager.contacts.count
-    }
 
     // MARK: - Leaderboard entries (for the view)
 
@@ -163,7 +153,7 @@ class NetworkDataProvider {
                 id: entry.userId,
                 name: displayName,
                 initials: initials(for: displayName),
-                rallyCount: entry.rallyCount,
+                score: entry.score,
                 color: entry.isCurrentUser ? .white : NetworkColors.avatarColor(forIndex: index),
                 textColor: entry.isCurrentUser ? NetworkColors.darkBlue : .white,
                 isUser: entry.isCurrentUser,
@@ -187,13 +177,23 @@ class NetworkDataProvider {
         stats?.totalUsersRallying ?? 0
     }
 
+    // MARK: - Score
+
+    var currentUserScore: Int {
+        stats?.score ?? 0
+    }
+
+    var scoreBreakdown: NetworkService.ScoreBreakdown? {
+        stats?.breakdown
+    }
+
     // MARK: - Goal tracking
 
-    var goalTarget: Int { 50 }
+    var goalTarget: Int { 500 }
 
     var progressFraction: Double {
         guard goalTarget > 0 else { return 0 }
-        return min(Double(ralliedCount) / Double(goalTarget), 1.0)
+        return min(Double(currentUserScore) / Double(goalTarget), 1.0)
     }
 
     // MARK: - User profile helpers
@@ -213,6 +213,51 @@ class NetworkDataProvider {
             return initials(for: name)
         }
         return "YOU"
+    }
+
+    // MARK: - Prefill from device contacts
+
+    var ownContactName: String? {
+        guard !appState.userPhoneNumber.isEmpty else { return nil }
+        return contactsManager.lookupOwnContact(phoneNumber: appState.userPhoneNumber)?.fullName
+    }
+
+    var ownContactEmail: String? {
+        guard !appState.userPhoneNumber.isEmpty else { return nil }
+        return contactsManager.lookupOwnContact(phoneNumber: appState.userPhoneNumber)?.email
+    }
+
+    private func prefillProfileFromContacts(profile: NetworkService.ProfileResponse) async {
+        let nameIsEmpty = profile.name == nil
+            || profile.name!.isEmpty
+            || profile.name!.hasPrefix("+")
+        let emailIsEmpty = profile.email == nil || profile.email!.isEmpty
+
+        guard nameIsEmpty || emailIsEmpty else { return }
+
+        guard let ownContact = contactsManager.lookupOwnContact(phoneNumber: appState.userPhoneNumber) else { return }
+
+        let nameToSave = nameIsEmpty ? ownContact.fullName : nil
+        let emailToSave = emailIsEmpty ? ownContact.email : nil
+
+        guard nameToSave != nil || emailToSave != nil else { return }
+
+        let token = appState.sessionToken
+        guard !token.isEmpty else { return }
+
+        if let result = try? await NetworkService.updateProfile(name: nameToSave, email: emailToSave, token: token) {
+            userProfile = NetworkService.ProfileResponse(
+                id: profile.id,
+                name: result.name ?? profile.name,
+                email: result.email ?? profile.email,
+                phoneNumber: profile.phoneNumber,
+                createdAt: profile.createdAt,
+                rallyCount: profile.rallyCount,
+                uniqueContactsRallied: profile.uniqueContactsRallied,
+                firstRallyAt: profile.firstRallyAt,
+                avatarUrl: profile.avatarUrl
+            )
+        }
     }
 
     // MARK: - Helpers

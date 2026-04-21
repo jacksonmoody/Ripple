@@ -1,0 +1,217 @@
+import Foundation
+
+enum NetworkService {
+    private static var baseURL: String { AuthService.baseURL }
+
+    // MARK: - Record Nudges
+
+    struct RecordNudgeContact: Encodable {
+        let name: String
+        let phone: String
+    }
+
+    static func recordNudges(contacts: [RecordNudgeContact], token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/nudges")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = ["contacts": contacts.map { ["name": $0.name, "phone": $0.phone] }]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+    }
+
+    // MARK: - Get User's Nudges
+
+    struct NudgeEntry: Decodable, Identifiable {
+        let id: String
+        let contactName: String
+        let contactPhone: String
+        let createdAt: String
+    }
+
+    struct NudgesResponse: Decodable {
+        let nudges: [NudgeEntry]
+        let total: Int
+    }
+
+    static func getNudges(token: String) async throws -> NudgesResponse {
+        let url = URL(string: "\(baseURL)/api/nudges")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(NudgesResponse.self, from: data)
+    }
+
+    // MARK: - Leaderboard
+
+    struct LeaderboardEntryResponse: Decodable {
+        let rank: Int
+        let userId: String
+        let name: String
+        let nudgeCount: Int
+        let isCurrentUser: Bool
+    }
+
+    struct CurrentUserStats: Decodable {
+        let rank: Int?
+        let nudgeCount: Int
+    }
+
+    struct LeaderboardResponse: Decodable {
+        let leaderboard: [LeaderboardEntryResponse]
+        let currentUser: CurrentUserStats
+    }
+
+    static func getLeaderboard(token: String) async throws -> LeaderboardResponse {
+        let url = URL(string: "\(baseURL)/api/leaderboard")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(LeaderboardResponse.self, from: data)
+    }
+
+    // MARK: - Stats
+
+    struct RecentNudge: Decodable {
+        let id: String
+        let contactName: String
+        let createdAt: String
+    }
+
+    struct StatsResponse: Decodable {
+        let nudgeCount: Int
+        let totalUsersNudging: Int
+        let totalNudgesNetwork: Int
+        let recentNudges: [RecentNudge]
+    }
+
+    static func getStats(token: String) async throws -> StatsResponse {
+        let url = URL(string: "\(baseURL)/api/stats")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(StatsResponse.self, from: data)
+    }
+    // MARK: - Profile
+
+    struct ProfileResponse: Decodable {
+        let id: String
+        let name: String?
+        let phoneNumber: String?
+        let createdAt: String?
+        let nudgeCount: Int
+        let uniqueContactsNudged: Int
+        let firstNudgeAt: String?
+        let avatarUrl: String?
+    }
+
+    static func getProfile(token: String) async throws -> ProfileResponse {
+        let url = URL(string: "\(baseURL)/api/profile")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(ProfileResponse.self, from: data)
+    }
+
+    struct UpdateNameResponse: Decodable {
+        let success: Bool
+        let name: String
+    }
+
+    static func updateName(name: String, token: String) async throws -> UpdateNameResponse {
+        let url = URL(string: "\(baseURL)/api/profile")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body = ["name": name]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(UpdateNameResponse.self, from: data)
+    }
+    // MARK: - Avatar
+
+    struct AvatarUploadResponse: Decodable {
+        let success: Bool
+        let avatarUrl: String
+    }
+
+    static func uploadAvatar(imageData: Data, mimeType: String, token: String) async throws -> AvatarUploadResponse {
+        let url = URL(string: "\(baseURL)/api/profile/avatar")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"avatar\"; filename=\"avatar.jpg\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(imageData)
+        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(AvatarUploadResponse.self, from: data)
+    }
+
+    static func deleteAvatar(token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/profile/avatar")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+    }
+}
+
+enum NetworkServiceError: LocalizedError {
+    case requestFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .requestFailed: return "Network request failed"
+        }
+    }
+}

@@ -180,9 +180,25 @@ struct ContactListView: View {
 
     private func handleMessageResult(_ result: MessageComposeResult) {
         if result == .sent {
+            let nudgedContactsList = selectedContacts
             appState.nudgedCount += selectedIDs.count
             appState.nudgedContactIDs.formUnion(selectedIDs)
             selectedIDs.removeAll()
+
+            // Record nudges to backend
+            Task {
+                let contacts = nudgedContactsList.map { contact in
+                    NetworkService.RecordNudgeContact(
+                        name: contact.fullName,
+                        phone: contact.primaryPhoneNumber ?? ""
+                    )
+                }
+                try? await NetworkService.recordNudges(
+                    contacts: contacts,
+                    token: appState.sessionToken
+                )
+            }
+
             onNudgeSent()
         }
     }

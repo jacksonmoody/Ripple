@@ -5,7 +5,7 @@ enum AppScreen: Equatable {
     case phoneAuth
     case contactsPermission
     case contactList
-    case success
+    case network
 }
 
 @Observable

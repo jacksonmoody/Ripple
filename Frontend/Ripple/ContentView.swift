@@ -32,15 +32,13 @@ struct ContentView: View {
 
             case .contactList:
                 ContactListView(appState: appState, contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .success }
+                    withAnimation { appState.currentScreen = .network }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
-            case .success:
-                SuccessView(nudgedCount: appState.nudgedCount) {
-                    withAnimation { appState.currentScreen = .contactList }
-                }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+            case .network:
+                NetworkView(appState: appState, contactsManager: contactsManager)
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
             }
             }
         }

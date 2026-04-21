@@ -1,0 +1,139 @@
+import SwiftUI
+import UIKit
+
+struct RippleWebTab: View {
+    let provider: NetworkDataProvider
+    @Binding var selectedContact: NetworkContact?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                // Network graph
+                RippleGraphView(contacts: provider.nudgedContacts) { contact in
+                    selectedContact = contact
+                }
+
+                // Stats strip
+                statsStrip
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 12)
+
+                // Contact list
+                contactList
+                    .padding(.horizontal, 18)
+            }
+        }
+    }
+
+    // MARK: - Stats Strip
+
+    private var statsStrip: some View {
+        HStack {
+            statItem(value: "\(provider.nudgedCount)", label: "Nudged")
+            Spacer()
+            if let days = provider.daysToElection {
+                statItem(value: "\(days)", label: "Days to Vote")
+                Spacer()
+            }
+            statItem(value: "\(provider.contactsWithElections)", label: "w/ Elections")
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.white.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(.white.opacity(0.13), lineWidth: 1)
+                )
+        )
+    }
+
+    private func statItem(value: String, label: String) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundStyle(.white)
+            Text(label.uppercased())
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.white.opacity(0.55))
+                .tracking(0.4)
+        }
+    }
+
+    // MARK: - Contact List
+
+    private var contactList: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("YOUR NUDGES")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(0.38))
+                .tracking(0.8)
+                .padding(.bottom, 2)
+
+            if provider.nudgedContacts.isEmpty {
+                Text("Nudge contacts to see them here")
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.4))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 30)
+            } else {
+                ForEach(provider.nudgedContacts) { contact in
+                    contactRow(contact)
+                        .onTapGesture {
+                            selectedContact = contact
+                        }
+                }
+            }
+
+            Spacer().frame(height: 12)
+        }
+    }
+
+    private func contactRow(_ contact: NetworkContact) -> some View {
+        HStack(spacing: 11) {
+            // Avatar
+            if let image = contact.thumbnailImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 36, height: 36)
+                    .clipShape(Circle())
+            } else {
+                Text(contact.initials)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(contact.avatarColor, in: Circle())
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(contact.fullName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                if let election = contact.upcomingElection {
+                    Text(election.name)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.48))
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.25))
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 13)
+        .background(
+            RoundedRectangle(cornerRadius: 13)
+                .fill(.white.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 13)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+}

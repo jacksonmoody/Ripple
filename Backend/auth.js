@@ -2,7 +2,7 @@ import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { phoneNumber, bearer } from "better-auth/plugins";
-import { MongoClient } from "mongodb";
+import { MongoClient, GridFSBucket } from "mongodb";
 import twilio from "twilio";
 
 let cachedClient = null;
@@ -17,6 +17,20 @@ async function getMongoClient() {
 
 const client = await getMongoClient();
 const db = client.db();
+
+export async function getDb() {
+  const c = await getMongoClient();
+  return c.db();
+}
+
+export function getAvatarBucket() {
+  return new GridFSBucket(db, { bucketName: "avatars" });
+}
+
+// Ensure indexes for nudges collection
+db.collection("nudges")
+  .createIndex({ userId: 1, createdAt: -1 })
+  .catch(() => {});
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,

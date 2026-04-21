@@ -171,8 +171,8 @@ struct ProfileTab: View {
                 .tracking(0.8)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 9) {
-                statCard(value: "\(profile?.nudgeCount ?? provider.nudgedCount)", label: "Total nudges")
-                statCard(value: "\(profile?.uniqueContactsNudged ?? 0)", label: "People nudged")
+                statCard(value: "\(profile?.rallyCount ?? provider.ralliedCount)", label: "Total rallies")
+                statCard(value: "\(profile?.uniqueContactsRallied ?? 0)", label: "People rallied")
                 statCard(value: provider.daysToElection.map { "\($0)" } ?? "--", label: "Days to election")
                 statCard(value: memberSince, label: "Member since")
             }
@@ -321,9 +321,9 @@ struct ProfileTab: View {
                 name: result.name,
                 phoneNumber: profile?.phoneNumber,
                 createdAt: profile?.createdAt,
-                nudgeCount: profile?.nudgeCount ?? 0,
-                uniqueContactsNudged: profile?.uniqueContactsNudged ?? 0,
-                firstNudgeAt: profile?.firstNudgeAt,
+                rallyCount: profile?.rallyCount ?? 0,
+                uniqueContactsRallied: profile?.uniqueContactsRallied ?? 0,
+                firstRallyAt: profile?.firstRallyAt,
                 avatarUrl: profile?.avatarUrl
             )
         }
@@ -368,9 +368,9 @@ struct ProfileTab: View {
                 name: profile?.name,
                 phoneNumber: profile?.phoneNumber,
                 createdAt: profile?.createdAt,
-                nudgeCount: profile?.nudgeCount ?? 0,
-                uniqueContactsNudged: profile?.uniqueContactsNudged ?? 0,
-                firstNudgeAt: profile?.firstNudgeAt,
+                rallyCount: profile?.rallyCount ?? 0,
+                uniqueContactsRallied: profile?.uniqueContactsRallied ?? 0,
+                firstRallyAt: profile?.firstRallyAt,
                 avatarUrl: result.avatarUrl
             )
         }

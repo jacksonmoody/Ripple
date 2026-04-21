@@ -3,7 +3,7 @@ import { getDb } from "../auth.js";
 
 const router = Router();
 
-// POST /api/nudges — record nudges sent by the user
+// POST /api/rallies — record rallies sent by the user
 router.post("/", async (req, res) => {
   const { contacts } = req.body;
   if (!Array.isArray(contacts) || contacts.length === 0) {
@@ -19,28 +19,28 @@ router.post("/", async (req, res) => {
     createdAt: now,
   }));
 
-  await db.collection("nudges").insertMany(docs);
+  await db.collection("rallies").insertMany(docs);
 
   return res.json({ success: true, count: docs.length });
 });
 
-// GET /api/nudges — get the authenticated user's nudges
+// GET /api/rallies — get the authenticated user's rallies
 router.get("/", async (req, res) => {
   const db = await getDb();
-  const nudges = await db
-    .collection("nudges")
+  const rallies = await db
+    .collection("rallies")
     .find({ userId: req.session.user.id })
     .sort({ createdAt: -1 })
     .toArray();
 
   return res.json({
-    nudges: nudges.map((n) => ({
+    rallies: rallies.map((n) => ({
       id: n._id.toString(),
       contactName: n.contactName,
       contactPhone: n.contactPhone,
       createdAt: n.createdAt,
     })),
-    total: nudges.length,
+    total: rallies.length,
   });
 });
 

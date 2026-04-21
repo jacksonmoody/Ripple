@@ -34,6 +34,7 @@ struct AuthService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(baseURL, forHTTPHeaderField: "Origin")
 
         let body: [String: Any] = ["phoneNumber": phoneNumber]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -56,6 +57,7 @@ struct AuthService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(baseURL, forHTTPHeaderField: "Origin")
 
         let body: [String: Any] = [
             "phoneNumber": phoneNumber,

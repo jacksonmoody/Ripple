@@ -20,9 +20,9 @@ enum NetworkTab: String, CaseIterable {
 
     var subtitle: String {
         switch self {
-        case .network: "See your network grow"
+        case .network: "Watch your network grow"
         case .impact: "Track your voting impact"
-        case .leaderboard: "Top nudgers in your network"
+        case .leaderboard: "Top influencers in your network"
         case .profile: "Your account"
         }
     }
@@ -49,7 +49,7 @@ struct LeaderboardEntry: Identifiable {
     let id: String
     let name: String
     let initials: String
-    let nudgeCount: Int
+    let rallyCount: Int
     let color: Color
     let textColor: Color
     let isUser: Bool

@@ -1,25 +1,26 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
 import { getDb } from "../auth.js";
 
 const router = Router();
 
-// GET /api/leaderboard — ranked users by nudge count
+// GET /api/leaderboard — ranked users by rally count
 router.get("/", async (req, res) => {
   const db = await getDb();
 
   const pipeline = [
-    { $group: { _id: "$userId", nudgeCount: { $sum: 1 } } },
-    { $sort: { nudgeCount: -1 } },
+    { $group: { _id: "$userId", rallyCount: { $sum: 1 } } },
+    { $sort: { rallyCount: -1 } },
     { $limit: 20 },
   ];
 
-  const ranked = await db.collection("nudges").aggregate(pipeline).toArray();
+  const ranked = await db.collection("rallies").aggregate(pipeline).toArray();
 
   // Fetch user info for each ranked user
   const userIds = ranked.map((r) => r._id);
   const users = await db
     .collection("user")
-    .find({ _id: { $in: userIds } })
+    .find({ _id: { $in: userIds.map((id) => new ObjectId(id)) } })
     .toArray();
   const userMap = Object.fromEntries(users.map((u) => [u._id.toString(), u]));
 
@@ -31,7 +32,7 @@ router.get("/", async (req, res) => {
       rank: i + 1,
       userId: r._id,
       name: user?.name || user?.phoneNumber || "User",
-      nudgeCount: r.nudgeCount,
+      rallyCount: r.rallyCount,
       isCurrentUser: r._id === userId,
     };
   });
@@ -41,16 +42,16 @@ router.get("/", async (req, res) => {
   let currentUserRank = currentUserEntry?.rank ?? null;
 
   if (!currentUserEntry) {
-    const userNudgeCount = await db
-      .collection("nudges")
+    const userRallyCount = await db
+      .collection("rallies")
       .countDocuments({ userId });
 
-    if (userNudgeCount > 0) {
+    if (userRallyCount > 0) {
       const usersAbove = await db
-        .collection("nudges")
+        .collection("rallies")
         .aggregate([
-          { $group: { _id: "$userId", nudgeCount: { $sum: 1 } } },
-          { $match: { nudgeCount: { $gt: userNudgeCount } } },
+          { $group: { _id: "$userId", rallyCount: { $sum: 1 } } },
+          { $match: { rallyCount: { $gt: userRallyCount } } },
           { $count: "count" },
         ])
         .toArray();
@@ -63,9 +64,9 @@ router.get("/", async (req, res) => {
     leaderboard,
     currentUser: {
       rank: currentUserRank,
-      nudgeCount:
-        currentUserEntry?.nudgeCount ??
-        (await db.collection("nudges").countDocuments({ userId })),
+      rallyCount:
+        currentUserEntry?.rallyCount ??
+        (await db.collection("rallies").countDocuments({ userId })),
     },
   });
 });

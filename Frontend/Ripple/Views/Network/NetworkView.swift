@@ -11,20 +11,32 @@ struct NetworkView: View {
     var body: some View {
         let provider = dataProvider ?? NetworkDataProvider(appState: appState, contactsManager: contactsManager)
 
-        ZStack {
-            NetworkColors.gradient.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                header
-                content(provider: provider)
+        TabView(selection: $selectedTab) {
+            Tab("Network", systemImage: "circle.grid.3x3", value: .network) {
+                tabPage(tab: .network) {
+                    RippleWebTab(provider: provider, selectedContact: $selectedContact)
+                }
             }
 
-            // Custom tab bar
-            VStack {
-                Spacer()
-                tabBar
+            Tab("Impact", systemImage: "chart.line.uptrend.xyaxis", value: .impact) {
+                tabPage(tab: .impact) {
+                    ImpactTab(provider: provider, onRallyMore: { withAnimation { appState.currentScreen = .contactList } })
+                }
+            }
+
+            Tab("Rankings", systemImage: "trophy", value: .leaderboard) {
+                tabPage(tab: .leaderboard) {
+                    LeaderboardTab(provider: provider, onRallyMore: { withAnimation { appState.currentScreen = .contactList } })
+                }
+            }
+
+            Tab("Profile", systemImage: "person.crop.circle", value: .profile) {
+                tabPage(tab: .profile) {
+                    ProfileTab(appState: appState, provider: provider)
+                }
             }
         }
+        .tint(.white)
         .sheet(item: $selectedContact) { contact in
             ContactDetailSheet(contact: contact, onViewProfile: {
                 selectedContact = nil
@@ -48,29 +60,31 @@ struct NetworkView: View {
         }
     }
 
+    // MARK: - Tab Page Wrapper
+
+    private func tabPage<Content: View>(tab: NetworkTab, @ViewBuilder content: () -> Content) -> some View {
+        ZStack {
+            NetworkColors.gradient.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                header(for: tab)
+                content()
+            }
+        }
+        .toolbarBackground(NetworkColors.tabBarBackground, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+    }
+
     // MARK: - Header
 
-    private var header: some View {
+    private func header(for tab: NetworkTab) -> some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 3) {
-                Button {
-                    withAnimation { appState.currentScreen = .contactList }
-                } label: {
-                    Text("\u{2190} Home")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.46))
-                }
-
-                Text(selectedTab.title)
+                Text(tab.title)
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(.white)
-                    .id(selectedTab)
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity),
-                        removal: .opacity
-                    ))
 
-                Text(selectedTab.subtitle)
+                Text(tab.subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.5))
             }
@@ -80,7 +94,7 @@ struct NetworkView: View {
             Button {
                 withAnimation { appState.currentScreen = .contactList }
             } label: {
-                Text("+ Nudge")
+                Text("+ Rally")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
@@ -92,64 +106,5 @@ struct NetworkView: View {
         .padding(.horizontal, 22)
         .padding(.top, 5)
         .padding(.bottom, 10)
-        .animation(.easeInOut(duration: 0.22), value: selectedTab)
-    }
-
-    // MARK: - Content
-
-    @ViewBuilder
-    private func content(provider: NetworkDataProvider) -> some View {
-        switch selectedTab {
-        case .network:
-            RippleWebTab(provider: provider, selectedContact: $selectedContact)
-                .padding(.bottom, 82)
-        case .impact:
-            ImpactTab(provider: provider, onNudgeMore: { withAnimation { appState.currentScreen = .contactList } })
-                .padding(.bottom, 82)
-        case .leaderboard:
-            LeaderboardTab(provider: provider, onNudgeMore: { withAnimation { appState.currentScreen = .contactList } })
-                .padding(.bottom, 82)
-        case .profile:
-            ProfileTab(appState: appState, provider: provider)
-                .padding(.bottom, 82)
-        }
-    }
-
-    // MARK: - Tab Bar
-
-    private var tabBar: some View {
-        HStack {
-            tabButton(.network, icon: "circle.grid.3x3", label: "Network")
-            tabButton(.impact, icon: "chart.line.uptrend.xyaxis", label: "Impact")
-            tabButton(.leaderboard, icon: "trophy", label: "Rankings")
-            tabButton(.profile, icon: "person.crop.circle", label: "Profile")
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 28)
-        .background(
-            Rectangle()
-                .fill(NetworkColors.tabBarBackground)
-                .background(.ultraThinMaterial)
-                .overlay(alignment: .top) {
-                    Rectangle().fill(.white.opacity(0.1)).frame(height: 1)
-                }
-                .ignoresSafeArea(edges: .bottom)
-        )
-    }
-
-    private func tabButton(_ tab: NetworkTab, icon: String, label: String) -> some View {
-        let isActive = selectedTab == tab
-        return Button {
-            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                Text(label)
-                    .font(.system(size: 10, weight: isActive ? .semibold : .regular))
-            }
-            .foregroundStyle(isActive ? .white : .white.opacity(0.38))
-            .frame(maxWidth: .infinity)
-        }
     }
 }

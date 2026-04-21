@@ -83,7 +83,7 @@ struct RippleGraphView: View {
                             anchor: .center
                         )
 
-                        // Badge (nudge count = 1 for each nudged contact)
+                        // Badge (rally count = 1 for each rallied contact)
                         let badgeCenter = CGPoint(x: pos.point.x + 18, y: pos.point.y - 18)
                         let badgeRect = CGRect(
                             x: badgeCenter.x - 11, y: badgeCenter.y - 11,

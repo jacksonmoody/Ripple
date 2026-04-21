@@ -6,10 +6,10 @@ class NetworkDataProvider {
     let contactsManager: ContactsManager
 
     // Backend data
-    var backendNudges: [NetworkService.NudgeEntry] = []
+    var backendRallies: [NetworkService.RallyEntry] = []
     var leaderboard: [NetworkService.LeaderboardEntryResponse] = []
     var currentUserRank: Int?
-    var currentUserNudgeCount: Int = 0
+    var currentUserRallyCount: Int = 0
     var stats: NetworkService.StatsResponse?
     var isLoading = false
 
@@ -27,22 +27,21 @@ class NetworkDataProvider {
         let token = appState.sessionToken
         guard !token.isEmpty else { return }
 
-        async let nudgesTask = try? NetworkService.getNudges(token: token)
+        async let ralliesTask = try? NetworkService.getRallies(token: token)
         async let leaderboardTask = try? NetworkService.getLeaderboard(token: token)
         async let statsTask = try? NetworkService.getStats(token: token)
 
-        let (nudgesResult, leaderboardResult, statsResult) = await (nudgesTask, leaderboardTask, statsTask)
+        let (ralliesResult, leaderboardResult, statsResult) = await (ralliesTask, leaderboardTask, statsTask)
 
-        if let nudges = nudgesResult {
-            backendNudges = nudges.nudges
-            // Sync local count with backend
-            appState.nudgedCount = nudges.total
+        if let rallies = ralliesResult {
+            backendRallies = rallies.rallies
+            appState.ralliedCount = rallies.total
         }
 
         if let lb = leaderboardResult {
             leaderboard = lb.leaderboard
             currentUserRank = lb.currentUser.rank
-            currentUserNudgeCount = lb.currentUser.nudgeCount
+            currentUserRallyCount = lb.currentUser.rallyCount
         }
 
         if let s = statsResult {
@@ -50,12 +49,12 @@ class NetworkDataProvider {
         }
     }
 
-    // MARK: - Local nudged contacts (matched from device contacts)
+    // MARK: - Local rallied contacts (matched from device contacts)
 
-    var nudgedContacts: [NetworkContact] {
-        let nudgedIDs = appState.nudgedContactIDs
+    var ralliedContacts: [NetworkContact] {
+        let ralliedIDs = appState.ralliedContactIDs
         let matched = contactsManager.contacts
-            .filter { nudgedIDs.contains($0.id) }
+            .filter { ralliedIDs.contains($0.id) }
             .enumerated()
             .map { index, contact in
                 NetworkContact(
@@ -67,12 +66,11 @@ class NetworkDataProvider {
         return matched
     }
 
-    var nudgedCount: Int {
-        // Prefer backend count if available, fall back to local
-        if currentUserNudgeCount > 0 {
-            return currentUserNudgeCount
+    var ralliedCount: Int {
+        if currentUserRallyCount > 0 {
+            return currentUserRallyCount
         }
-        return appState.nudgedCount
+        return appState.ralliedCount
     }
 
     // MARK: - Election stats
@@ -104,7 +102,7 @@ class NetworkDataProvider {
                 id: entry.userId,
                 name: entry.isCurrentUser ? "You" : entry.name,
                 initials: initials(for: entry.isCurrentUser ? "You" : entry.name),
-                nudgeCount: entry.nudgeCount,
+                rallyCount: entry.rallyCount,
                 color: entry.isCurrentUser ? .white : NetworkColors.avatarColor(forIndex: index),
                 textColor: entry.isCurrentUser ? NetworkColors.darkBlue : .white,
                 isUser: entry.isCurrentUser,
@@ -115,16 +113,16 @@ class NetworkDataProvider {
 
     // MARK: - Recent activity (from backend)
 
-    var recentNudges: [NetworkService.RecentNudge] {
-        stats?.recentNudges ?? []
+    var recentRallies: [NetworkService.RecentRally] {
+        stats?.recentRallies ?? []
     }
 
-    var totalNudgesNetwork: Int {
-        stats?.totalNudgesNetwork ?? 0
+    var totalRalliesNetwork: Int {
+        stats?.totalRalliesNetwork ?? 0
     }
 
-    var totalUsersNudging: Int {
-        stats?.totalUsersNudging ?? 0
+    var totalUsersRallying: Int {
+        stats?.totalUsersRallying ?? 0
     }
 
     // MARK: - Goal tracking
@@ -133,7 +131,7 @@ class NetworkDataProvider {
 
     var progressFraction: Double {
         guard goalTarget > 0 else { return 0 }
-        return min(Double(nudgedCount) / Double(goalTarget), 1.0)
+        return min(Double(ralliedCount) / Double(goalTarget), 1.0)
     }
 
     // MARK: - Helpers

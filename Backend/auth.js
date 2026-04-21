@@ -27,8 +27,8 @@ export function getAvatarBucket() {
   return new GridFSBucket(db, { bucketName: "avatars" });
 }
 
-// Ensure indexes for nudges collection
-db.collection("nudges")
+// Ensure indexes for rallies collection
+db.collection("rallies")
   .createIndex({ userId: 1, createdAt: -1 })
   .catch(() => {});
 

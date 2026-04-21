@@ -8,29 +8,29 @@ router.get("/", async (req, res) => {
   const db = await getDb();
   const userId = req.session.user.id;
 
-  const nudgeCount = await db
-    .collection("nudges")
+  const rallyCount = await db
+    .collection("rallies")
     .countDocuments({ userId });
 
   const totalUsers = await db
-    .collection("nudges")
+    .collection("rallies")
     .aggregate([{ $group: { _id: "$userId" } }, { $count: "count" }])
     .toArray();
 
-  const totalNudges = await db.collection("nudges").countDocuments();
+  const totalRallies = await db.collection("rallies").countDocuments();
 
-  const recentNudges = await db
-    .collection("nudges")
+  const recentRallies = await db
+    .collection("rallies")
     .find({ userId })
     .sort({ createdAt: -1 })
     .limit(10)
     .toArray();
 
   return res.json({
-    nudgeCount,
-    totalUsersNudging: totalUsers[0]?.count ?? 0,
-    totalNudgesNetwork: totalNudges,
-    recentNudges: recentNudges.map((n) => ({
+    rallyCount,
+    totalUsersRallying: totalUsers[0]?.count ?? 0,
+    totalRalliesNetwork: totalRallies,
+    recentRallies: recentRallies.map((n) => ({
       id: n._id.toString(),
       contactName: n.contactName,
       createdAt: n.createdAt,

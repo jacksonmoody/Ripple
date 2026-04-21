@@ -3,15 +3,15 @@ import Foundation
 enum NetworkService {
     private static var baseURL: String { AuthService.baseURL }
 
-    // MARK: - Record Nudges
+    // MARK: - Record Rallies
 
-    struct RecordNudgeContact: Encodable {
+    struct RecordRallyContact: Encodable {
         let name: String
         let phone: String
     }
 
-    static func recordNudges(contacts: [RecordNudgeContact], token: String) async throws {
-        let url = URL(string: "\(baseURL)/api/nudges")!
+    static func recordRallies(contacts: [RecordRallyContact], token: String) async throws {
+        let url = URL(string: "\(baseURL)/api/rallies")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -26,22 +26,22 @@ enum NetworkService {
         }
     }
 
-    // MARK: - Get User's Nudges
+    // MARK: - Get User's Rallies
 
-    struct NudgeEntry: Decodable, Identifiable {
+    struct RallyEntry: Decodable, Identifiable {
         let id: String
         let contactName: String
         let contactPhone: String
         let createdAt: String
     }
 
-    struct NudgesResponse: Decodable {
-        let nudges: [NudgeEntry]
+    struct RalliesResponse: Decodable {
+        let rallies: [RallyEntry]
         let total: Int
     }
 
-    static func getNudges(token: String) async throws -> NudgesResponse {
-        let url = URL(string: "\(baseURL)/api/nudges")!
+    static func getRallies(token: String) async throws -> RalliesResponse {
+        let url = URL(string: "\(baseURL)/api/rallies")!
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
@@ -50,7 +50,7 @@ enum NetworkService {
             throw NetworkServiceError.requestFailed
         }
 
-        return try JSONDecoder().decode(NudgesResponse.self, from: data)
+        return try JSONDecoder().decode(RalliesResponse.self, from: data)
     }
 
     // MARK: - Leaderboard
@@ -59,13 +59,13 @@ enum NetworkService {
         let rank: Int
         let userId: String
         let name: String
-        let nudgeCount: Int
+        let rallyCount: Int
         let isCurrentUser: Bool
     }
 
     struct CurrentUserStats: Decodable {
         let rank: Int?
-        let nudgeCount: Int
+        let rallyCount: Int
     }
 
     struct LeaderboardResponse: Decodable {
@@ -88,17 +88,17 @@ enum NetworkService {
 
     // MARK: - Stats
 
-    struct RecentNudge: Decodable {
+    struct RecentRally: Decodable {
         let id: String
         let contactName: String
         let createdAt: String
     }
 
     struct StatsResponse: Decodable {
-        let nudgeCount: Int
-        let totalUsersNudging: Int
-        let totalNudgesNetwork: Int
-        let recentNudges: [RecentNudge]
+        let rallyCount: Int
+        let totalUsersRallying: Int
+        let totalRalliesNetwork: Int
+        let recentRallies: [RecentRally]
     }
 
     static func getStats(token: String) async throws -> StatsResponse {
@@ -120,9 +120,9 @@ enum NetworkService {
         let name: String?
         let phoneNumber: String?
         let createdAt: String?
-        let nudgeCount: Int
-        let uniqueContactsNudged: Int
-        let firstNudgeAt: String?
+        let rallyCount: Int
+        let uniqueContactsRallied: Int
+        let firstRallyAt: String?
         let avatarUrl: String?
     }
 

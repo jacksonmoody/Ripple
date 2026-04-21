@@ -26,7 +26,7 @@ struct ContentView: View {
 
             case .contactsPermission:
                 ContactsPermissionView(contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .contactList }
+                    withAnimation { appState.currentScreen = .network }
                 }
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
@@ -49,7 +49,7 @@ struct ContentView: View {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)
                 if valid {
                     appState.isAuthenticated = true
-                    appState.currentScreen = .contactList
+                    appState.currentScreen = .network
                 } else {
                     appState.clearSession()
                 }

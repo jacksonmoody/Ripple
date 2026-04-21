@@ -3,7 +3,7 @@ import UIKit
 
 struct LeaderboardTab: View {
     let provider: NetworkDataProvider
-    var onNudgeMore: () -> Void
+    var onRallyMore: () -> Void
 
     var body: some View {
         ScrollView {
@@ -32,7 +32,7 @@ struct LeaderboardTab: View {
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
 
-                    nudgedBreakdown
+                    ralliedBreakdown
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
 
@@ -89,7 +89,7 @@ struct LeaderboardTab: View {
                 .foregroundStyle(.white)
                 .padding(.top, 5)
 
-            Text("\(entry.nudgeCount)")
+            Text("\(entry.rallyCount)")
                 .font(.system(size: 19 + (scale - 1) * 5, weight: .bold))
                 .foregroundStyle(.white)
 
@@ -110,7 +110,7 @@ struct LeaderboardTab: View {
 
     private var rankedList: some View {
         let entries = Array(provider.leaderboardEntries.dropFirst(3))
-        let maxNudges = provider.leaderboardEntries.first?.nudgeCount ?? 1
+        let maxRallies = provider.leaderboardEntries.first?.rallyCount ?? 1
 
         return VStack(spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
@@ -137,13 +137,13 @@ struct LeaderboardTab: View {
                                 .overlay(alignment: .leading) {
                                     Capsule()
                                         .fill(.white.opacity(0.5))
-                                        .frame(width: geo.size.width * CGFloat(entry.nudgeCount) / CGFloat(max(maxNudges, 1)))
+                                        .frame(width: geo.size.width * CGFloat(entry.rallyCount) / CGFloat(max(maxRallies, 1)))
                                 }
                         }
                         .frame(height: 3)
                     }
 
-                    Text("\(entry.nudgeCount)")
+                    Text("\(entry.rallyCount)")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(minWidth: 18, alignment: .trailing)
@@ -184,9 +184,9 @@ struct LeaderboardTab: View {
 
                 if rank > 1 {
                     let target = provider.leaderboardEntries.first(where: { $0.rank == rank - 1 })
-                    let diff = (target?.nudgeCount ?? 0) - provider.nudgedCount
+                    let diff = (target?.rallyCount ?? 0) - provider.ralliedCount
                     if diff > 0 {
-                        Text("Nudge \(diff) more to reach #\(rank - 1)")
+                        Text("Rally \(diff) more to reach #\(rank - 1)")
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.5))
                     }
@@ -227,7 +227,7 @@ struct LeaderboardTab: View {
             }
 
             HStack(spacing: 10) {
-                statBox(value: "\(provider.nudgedCount)", label: "Nudged")
+                statBox(value: "\(provider.ralliedCount)", label: "Rallied")
                 statBox(value: "\(provider.contactsWithElections)", label: "w/ Elections")
                 statBox(value: "\(provider.totalContacts)", label: "Total Contacts")
             }
@@ -255,23 +255,23 @@ struct LeaderboardTab: View {
         )
     }
 
-    // MARK: - Nudged Breakdown (fallback)
+    // MARK: - Rallied Breakdown (fallback)
 
-    private var nudgedBreakdown: some View {
+    private var ralliedBreakdown: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("PEOPLE YOU'VE NUDGED")
+            Text("PEOPLE YOU'VE RALLIED")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.38))
                 .tracking(0.8)
 
-            if provider.nudgedContacts.isEmpty {
-                Text("No contacts nudged yet")
+            if provider.ralliedContacts.isEmpty {
+                Text("No contacts rallied yet")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 20)
             } else {
-                ForEach(Array(provider.nudgedContacts.enumerated()), id: \.element.id) { index, contact in
+                ForEach(Array(provider.ralliedContacts.enumerated()), id: \.element.id) { index, contact in
                     HStack(spacing: 11) {
                         Text("#\(index + 1)")
                             .font(.system(size: 12, weight: .semibold))
@@ -295,7 +295,7 @@ struct LeaderboardTab: View {
                     }
                     .padding(.vertical, 8)
 
-                    if index < provider.nudgedContacts.count - 1 {
+                    if index < provider.ralliedContacts.count - 1 {
                         Divider().background(.white.opacity(0.08))
                     }
                 }
@@ -336,13 +336,13 @@ struct LeaderboardTab: View {
     // MARK: - CTA
 
     private var ctaCard: some View {
-        Button(action: onNudgeMore) {
+        Button(action: onRallyMore) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Nudge more contacts")
+                    Text("Rally more contacts")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(NetworkColors.darkBlue)
-                    Text("Every nudge counts toward your impact")
+                    Text("Every rally counts toward your impact")
                         .font(.system(size: 12))
                         .foregroundStyle(NetworkColors.darkBlue.opacity(0.55))
                 }

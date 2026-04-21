@@ -4,7 +4,7 @@ import cors from "cors";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./auth.js";
 
-import nudgesRouter from "./routes/nudges.js";
+import ralliesRouter from "./routes/rallies.js";
 import leaderboardRouter from "./routes/leaderboard.js";
 import statsRouter from "./routes/stats.js";
 import profileRouter from "./routes/profile.js";
@@ -43,7 +43,7 @@ app.use("/api/profile/avatar", avatarRouter);
 
 // Authenticated routes
 app.get("/api/me", requireSession, (req, res) => res.json(req.session));
-app.use("/api/nudges", requireSession, nudgesRouter);
+app.use("/api/rallies", requireSession, ralliesRouter);
 app.use("/api/leaderboard", requireSession, leaderboardRouter);
 app.use("/api/stats", requireSession, statsRouter);
 app.use("/api/profile", requireSession, profileRouter);

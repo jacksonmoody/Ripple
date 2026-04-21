@@ -3,7 +3,7 @@ import Combine
 
 struct ImpactTab: View {
     let provider: NetworkDataProvider
-    var onNudgeMore: () -> Void
+    var onRallyMore: () -> Void
 
     @State private var displayedCount = 0
     @State private var hasAnimated = false
@@ -19,7 +19,7 @@ struct ImpactTab: View {
                         .monospacedDigit()
                         .contentTransition(.numericText())
 
-                    Text("people nudged to vote")
+                    Text("people rallied to vote")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.68))
 
@@ -41,7 +41,7 @@ struct ImpactTab: View {
                     .padding(.top, 14)
 
                 // Recent activity
-                if !provider.recentNudges.isEmpty {
+                if !provider.recentRallies.isEmpty {
                     recentActivity
                         .padding(.horizontal, 18)
                         .padding(.top, 18)
@@ -57,7 +57,7 @@ struct ImpactTab: View {
         .onAppear {
             guard !hasAnimated else { return }
             hasAnimated = true
-            animateCount(to: provider.nudgedCount)
+            animateCount(to: provider.ralliedCount)
         }
     }
 
@@ -107,7 +107,7 @@ struct ImpactTab: View {
 
                 Spacer()
 
-                Text("Goal: \(provider.goalTarget) nudges \u{00B7} \(Int(provider.progressFraction * 100))% there")
+                Text("Goal: \(provider.goalTarget) rallies \u{00B7} \(Int(provider.progressFraction * 100))% there")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.32))
 
@@ -124,7 +124,7 @@ struct ImpactTab: View {
 
     private var statGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 9) {
-            statCard(value: "\(provider.nudgedCount)", label: "Directly nudged")
+                statCard(value: "\(provider.ralliedCount)", label: "Directly rallied")
             statCard(value: provider.daysToElection.map { "\($0)" } ?? "--", label: "Days to election")
             statCard(value: "\(provider.contactsWithElections)", label: "Contacts w/ elections")
             statCard(value: "\(provider.totalContacts)", label: "Total contacts")
@@ -162,7 +162,7 @@ struct ImpactTab: View {
                 .foregroundStyle(.white.opacity(0.38))
                 .tracking(0.8)
 
-            ForEach(provider.recentNudges, id: \.id) { nudge in
+            ForEach(provider.recentRallies, id: \.id) { rally in
                 HStack(spacing: 10) {
                     Circle()
                         .fill(.white.opacity(0.6))
@@ -171,13 +171,13 @@ struct ImpactTab: View {
                     Text("You")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white.opacity(0.75))
-                    + Text(" nudged \(nudge.contactName)")
+                    + Text(" rallied \(rally.contactName)")
                         .font(.system(size: 14))
                         .foregroundStyle(.white.opacity(0.75))
 
                     Spacer()
 
-                    Text(relativeTime(from: nudge.createdAt))
+                    Text(relativeTime(from: rally.createdAt))
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.3))
                 }
@@ -208,13 +208,13 @@ struct ImpactTab: View {
     // MARK: - CTA
 
     private var ctaCard: some View {
-        Button(action: onNudgeMore) {
+        Button(action: onRallyMore) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Keep the ripple going")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(NetworkColors.darkBlue)
-                    Text("Nudge more contacts to reach your goal")
+                    Text("Rally more contacts to reach your goal")
                         .font(.system(size: 12))
                         .foregroundStyle(NetworkColors.darkBlue.opacity(0.55))
                 }

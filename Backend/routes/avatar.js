@@ -41,7 +41,7 @@ router.post("/", requireAuth, upload.single("avatar"), async (req, res) => {
   const userId = req.session.user.id;
 
   // Delete existing avatar if any
-  const user = await db.collection("user").findOne({ _id: userId });
+  const user = await db.collection("user").findOne({ _id: new ObjectId(userId) });
   if (user?.avatarFileId) {
     try {
       await bucket.delete(new ObjectId(user.avatarFileId));
@@ -69,7 +69,7 @@ router.post("/", requireAuth, upload.single("avatar"), async (req, res) => {
   // Store the GridFS file ID on the user document
   await db
     .collection("user")
-    .updateOne({ _id: userId }, { $set: { avatarFileId: fileId.toString() } });
+    .updateOne({ _id: new ObjectId(userId) }, { $set: { avatarFileId: fileId.toString() } });
 
   const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3005}`;
 
@@ -82,7 +82,7 @@ router.post("/", requireAuth, upload.single("avatar"), async (req, res) => {
 // GET /api/profile/avatar/:userId — serve avatar image (public, no auth)
 router.get("/:userId", async (req, res) => {
   const db = await getDb();
-  const user = await db.collection("user").findOne({ _id: req.params.userId });
+  const user = await db.collection("user").findOne({ _id: new ObjectId(req.params.userId) });
 
   if (!user?.avatarFileId) {
     return res.status(404).json({ error: "No avatar found" });
@@ -113,7 +113,7 @@ router.get("/:userId", async (req, res) => {
 router.delete("/", requireAuth, async (req, res) => {
   const db = await getDb();
   const userId = req.session.user.id;
-  const user = await db.collection("user").findOne({ _id: userId });
+  const user = await db.collection("user").findOne({ _id: new ObjectId(userId) });
 
   if (!user?.avatarFileId) {
     return res.json({ success: true });
@@ -128,7 +128,7 @@ router.delete("/", requireAuth, async (req, res) => {
 
   await db
     .collection("user")
-    .updateOne({ _id: userId }, { $unset: { avatarFileId: "" } });
+    .updateOne({ _id: new ObjectId(userId) }, { $unset: { avatarFileId: "" } });
 
   return res.json({ success: true });
 });

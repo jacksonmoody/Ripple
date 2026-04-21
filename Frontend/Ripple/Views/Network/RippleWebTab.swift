@@ -9,7 +9,7 @@ struct RippleWebTab: View {
         ScrollView {
             VStack(spacing: 0) {
                 // Network graph
-                RippleGraphView(contacts: provider.nudgedContacts) { contact in
+                RippleGraphView(contacts: provider.ralliedContacts) { contact in
                     selectedContact = contact
                 }
 
@@ -29,7 +29,7 @@ struct RippleWebTab: View {
 
     private var statsStrip: some View {
         HStack {
-            statItem(value: "\(provider.nudgedCount)", label: "Nudged")
+            statItem(value: "\(provider.ralliedCount)", label: "Rallied")
             Spacer()
             if let days = provider.daysToElection {
                 statItem(value: "\(days)", label: "Days to Vote")
@@ -65,20 +65,20 @@ struct RippleWebTab: View {
 
     private var contactList: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text("YOUR NUDGES")
+            Text("YOUR RALLIES")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(.white.opacity(0.38))
                 .tracking(0.8)
                 .padding(.bottom, 2)
 
-            if provider.nudgedContacts.isEmpty {
-                Text("Nudge contacts to see them here")
+            if provider.ralliedContacts.isEmpty {
+                Text("Rally contacts to see them here")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 30)
             } else {
-                ForEach(provider.nudgedContacts) { contact in
+                ForEach(provider.ralliedContacts) { contact in
                     contactRow(contact)
                         .onTapGesture {
                             selectedContact = contact

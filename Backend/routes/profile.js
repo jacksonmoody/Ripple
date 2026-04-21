@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
 import { getDb } from "../auth.js";
 
 const router = Router();
@@ -7,18 +8,18 @@ const router = Router();
 router.get("/", async (req, res) => {
   const db = await getDb();
   const userId = req.session.user.id;
-  const user = await db.collection("user").findOne({ _id: userId });
+  const user = await db.collection("user").findOne({ _id: new ObjectId(userId) });
 
-  const nudgeCount = await db
-    .collection("nudges")
+  const rallyCount = await db
+    .collection("rallies")
     .countDocuments({ userId });
 
-  const firstNudge = await db
-    .collection("nudges")
+  const firstRally = await db
+    .collection("rallies")
     .findOne({ userId }, { sort: { createdAt: 1 } });
 
   const uniqueContacts = await db
-    .collection("nudges")
+    .collection("rallies")
     .aggregate([
       { $match: { userId } },
       { $group: { _id: "$contactPhone" } },
@@ -34,9 +35,9 @@ router.get("/", async (req, res) => {
     name: user?.name || null,
     phoneNumber: user?.phoneNumber || req.session.user.phoneNumber || null,
     createdAt: user?.createdAt || null,
-    nudgeCount,
-    uniqueContactsNudged: uniqueContacts[0]?.count ?? 0,
-    firstNudgeAt: firstNudge?.createdAt || null,
+    rallyCount,
+    uniqueContactsRallied: uniqueContacts[0]?.count ?? 0,
+    firstRallyAt: firstRally?.createdAt || null,
     avatarUrl: hasAvatar
       ? `${baseURL}/api/profile/avatar/${userId}`
       : null,
@@ -53,7 +54,7 @@ router.put("/", async (req, res) => {
   const db = await getDb();
   await db
     .collection("user")
-    .updateOne({ _id: req.session.user.id }, { $set: { name: name.trim() } });
+    .updateOne({ _id: new ObjectId(req.session.user.id) }, { $set: { name: name.trim() } });
 
   return res.json({ success: true, name: name.trim() });
 });

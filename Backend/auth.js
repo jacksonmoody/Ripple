@@ -66,5 +66,5 @@ export const auth = betterAuth({
       },
     }),
   ],
-  trustedOrigins: (origin) => true,
+  disableCSRFCheck: true,
 });

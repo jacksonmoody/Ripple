@@ -21,11 +21,6 @@ struct ImpactTab: View {
                     Text("people rallied to vote")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(.white.opacity(0.68))
-
-                    Text("Your ripple is growing")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.white.opacity(0.38))
-                        .padding(.top, 3)
                 }
                 .padding(.vertical, 20)
 

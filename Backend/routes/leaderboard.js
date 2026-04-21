@@ -26,14 +26,19 @@ router.get("/", async (req, res) => {
 
   const userId = req.session.user.id;
 
+  const baseURL = process.env.BASE_URL;
   const leaderboard = ranked.map((r, i) => {
     const user = userMap[r._id.toString()];
+    const hasName = user?.name && !user.name.startsWith("+");
     return {
       rank: i + 1,
       userId: r._id,
-      name: user?.name || user?.phoneNumber || "User",
+      name: hasName ? user.name : (user?.phoneNumber || "User"),
       rallyCount: r.rallyCount,
       isCurrentUser: r._id === userId,
+      avatarUrl: user?.avatarFileId
+        ? `${baseURL}/api/profile/avatar/${user._id.toString()}`
+        : null,
     };
   });
 

@@ -86,7 +86,7 @@ struct PhoneAuthView: View {
 
     private var phoneEntryField: some View {
         HStack(spacing: 8) {
-            Text("🇺🇸 +1")
+            Text("+1")
                 .font(.body.monospaced())
                 .foregroundStyle(.secondary)
 
@@ -110,11 +110,15 @@ struct PhoneAuthView: View {
     private var codeEntryField: some View {
         TextField("000000", text: $verificationCode)
             .keyboardType(.numberPad)
+            .textContentType(.oneTimeCode)
             .font(.system(size: 32, weight: .semibold, design: .monospaced))
             .multilineTextAlignment(.center)
             .focused($focusedField, equals: .code)
             .onChange(of: verificationCode) { _, newValue in
-                verificationCode = String(newValue.filter(\.isNumber).prefix(6))
+                let filtered = String(newValue.filter(\.isNumber).prefix(6))
+                if filtered != newValue {
+                    verificationCode = filtered
+                }
             }
             .padding()
             .background(.white, in: RoundedRectangle(cornerRadius: 14))

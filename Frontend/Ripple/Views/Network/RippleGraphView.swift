@@ -2,9 +2,13 @@ import SwiftUI
 
 struct RippleGraphView: View {
     let contacts: [NetworkContact]
+    let userInitials: String
+    let userAvatarURL: URL?
     var onSelectContact: (NetworkContact) -> Void
 
     @State private var pulsePhase: CGFloat = 0
+    @State private var userAvatarImage: UIImage?
+    @State private var contactAvatarImages: [String: UIImage] = [:]
 
     private let ringRadii: [CGFloat] = [70, 120, 170]
 
@@ -64,26 +68,41 @@ struct RippleGraphView: View {
                         glowPath.addEllipse(in: glowRect)
                         context.fill(glowPath, with: .color(contact.avatarColor.opacity(0.16)))
 
-                        // Main circle
                         let mainRect = CGRect(
                             x: pos.point.x - 24, y: pos.point.y - 24,
                             width: 48, height: 48
                         )
-                        var mainPath = Path()
-                        mainPath.addEllipse(in: mainRect)
-                        context.fill(mainPath, with: .color(contact.avatarColor))
 
-                        // Initials text
-                        let initialsText = Text(contact.initials)
-                            .font(.system(size: 12, weight: .heavy))
-                            .foregroundColor(.white)
-                        context.draw(
-                            context.resolve(initialsText),
-                            at: pos.point,
-                            anchor: .center
-                        )
+                        let avatarImg = contactAvatarImages[contact.id] ?? contact.thumbnailImage
+                        if let img = avatarImg {
+                            var mainPath = Path()
+                            mainPath.addEllipse(in: mainRect)
+                            context.fill(mainPath, with: .color(contact.avatarColor))
+                            let resolved = context.resolve(
+                                Image(uiImage: img)
+                            )
+                            context.clipToLayer(opacity: 1) { ctx in
+                                var clipPath = Path()
+                                clipPath.addEllipse(in: mainRect)
+                                ctx.clip(to: clipPath)
+                                ctx.draw(resolved, in: mainRect)
+                            }
+                        } else {
+                            var mainPath = Path()
+                            mainPath.addEllipse(in: mainRect)
+                            context.fill(mainPath, with: .color(contact.avatarColor))
 
-                        // Badge (rally count = 1 for each rallied contact)
+                            let initialsText = Text(contact.initials)
+                                .font(.system(size: 12, weight: .heavy))
+                                .foregroundColor(.white)
+                            context.draw(
+                                context.resolve(initialsText),
+                                at: pos.point,
+                                anchor: .center
+                            )
+                        }
+
+                        // Badge
                         let badgeCenter = CGPoint(x: pos.point.x + 18, y: pos.point.y - 18)
                         let badgeRect = CGRect(
                             x: badgeCenter.x - 11, y: badgeCenter.y - 11,
@@ -103,8 +122,7 @@ struct RippleGraphView: View {
                         )
                     }
 
-                    // Center "YOU" node
-                    // Outer glow
+                    // Center user node
                     var outerGlow = Path()
                     outerGlow.addEllipse(in: CGRect(x: center.x - 42, y: center.y - 42, width: 84, height: 84))
                     context.fill(outerGlow, with: .color(.white.opacity(0.07)))
@@ -117,14 +135,28 @@ struct RippleGraphView: View {
                     youCircle.addEllipse(in: CGRect(x: center.x - 26, y: center.y - 26, width: 52, height: 52))
                     context.fill(youCircle, with: .color(.white))
 
-                    let youText = Text("YOU")
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(NetworkColors.darkBlue)
-                    context.draw(
-                        context.resolve(youText),
-                        at: center,
-                        anchor: .center
-                    )
+                    if let avatarImg = userAvatarImage {
+                        let resolved = context.resolve(
+                            Image(uiImage: avatarImg)
+                        )
+                        let avatarRect = CGRect(x: center.x - 26, y: center.y - 26, width: 52, height: 52)
+                        context.clipToLayer(opacity: 1) { ctx in
+                            var clipPath = Path()
+                            clipPath.addEllipse(in: avatarRect)
+                            ctx.clip(to: clipPath)
+                            ctx.draw(resolved, in: avatarRect)
+                        }
+                    } else {
+                        let fontSize: CGFloat = userInitials == "YOU" ? 10 : 14
+                        let youText = Text(userInitials)
+                            .font(.system(size: fontSize, weight: .heavy))
+                            .foregroundColor(NetworkColors.darkBlue)
+                        context.draw(
+                            context.resolve(youText),
+                            at: center,
+                            anchor: .center
+                        )
+                    }
                 }
 
                 // Invisible tap targets for ring-1 nodes
@@ -141,12 +173,6 @@ struct RippleGraphView: View {
                             }
                     }
                 }
-
-                // "Tap a contact" label
-                Text("Tap a contact to see their ripple")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.32))
-                    .position(x: cx, y: cy + ringRadii.last! + 40)
             }
         }
         .frame(height: 420)
@@ -154,6 +180,27 @@ struct RippleGraphView: View {
             withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
                 pulsePhase = .pi * 2
             }
+        }
+        .task(id: userAvatarURL) {
+            guard let url = userAvatarURL else {
+                userAvatarImage = nil
+                return
+            }
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+               let image = UIImage(data: data) {
+                userAvatarImage = image
+            }
+        }
+        .task(id: contacts.map(\.id)) {
+            var loaded: [String: UIImage] = [:]
+            for contact in contacts {
+                guard let url = contact.profileAvatarURL else { continue }
+                if let (data, _) = try? await URLSession.shared.data(from: url),
+                   let image = UIImage(data: data) {
+                    loaded[contact.id] = image
+                }
+            }
+            contactAvatarImages = loaded
         }
     }
 

@@ -9,7 +9,11 @@ struct RippleWebTab: View {
         ScrollView {
             VStack(spacing: 0) {
                 // Network graph
-                RippleGraphView(contacts: provider.ralliedContacts) { contact in
+                RippleGraphView(
+                    contacts: provider.ralliedContacts,
+                    userInitials: provider.userInitials,
+                    userAvatarURL: provider.userAvatarURL
+                ) { contact in
                     selectedContact = contact
                 }
 
@@ -92,8 +96,19 @@ struct RippleWebTab: View {
 
     private func contactRow(_ contact: NetworkContact) -> some View {
         HStack(spacing: 11) {
-            // Avatar
-            if let image = contact.thumbnailImage {
+            if let avatarURL = contact.profileAvatarURL {
+                AsyncImage(url: avatarURL) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Text(contact.initials)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(contact.avatarColor, in: Circle())
+                }
+                .frame(width: 36, height: 36)
+                .clipShape(Circle())
+            } else if let image = contact.thumbnailImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

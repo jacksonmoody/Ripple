@@ -66,12 +66,16 @@ struct LeaderboardTab: View {
                 .foregroundStyle(.white.opacity(0.42))
                 .padding(.bottom, 4)
 
-            // Avatar
-            Text(entry.initials)
-                .font(.system(size: CGFloat(11) * scale, weight: .heavy))
-                .foregroundStyle(entry.textColor)
+            if let url = entry.avatarURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Text(entry.initials)
+                        .font(.system(size: CGFloat(11) * scale, weight: .heavy))
+                        .foregroundStyle(entry.textColor)
+                }
                 .frame(width: 46 * scale, height: 46 * scale)
-                .background(entry.color, in: Circle())
+                .clipShape(Circle())
                 .overlay(
                     Circle().stroke(
                         entry.rank == 1 ? .white.opacity(0.5) : .white.opacity(0.2),
@@ -79,6 +83,20 @@ struct LeaderboardTab: View {
                     )
                 )
                 .shadow(color: entry.rank == 1 ? .white.opacity(0.18) : .clear, radius: entry.rank == 1 ? 10 : 0)
+            } else {
+                Text(entry.initials)
+                    .font(.system(size: CGFloat(11) * scale, weight: .heavy))
+                    .foregroundStyle(entry.textColor)
+                    .frame(width: 46 * scale, height: 46 * scale)
+                    .background(entry.color, in: Circle())
+                    .overlay(
+                        Circle().stroke(
+                            entry.rank == 1 ? .white.opacity(0.5) : .white.opacity(0.2),
+                            lineWidth: entry.rank == 1 ? 2.5 : 2
+                        )
+                    )
+                    .shadow(color: entry.rank == 1 ? .white.opacity(0.18) : .clear, radius: entry.rank == 1 ? 10 : 0)
+            }
 
             Text(entry.name.split(separator: " ").first.map(String.init) ?? entry.name)
                 .font(.system(size: 11 + (scale - 1) * 3, weight: entry.rank == 1 ? .bold : .semibold))
@@ -116,11 +134,23 @@ struct LeaderboardTab: View {
                         .foregroundStyle(.white.opacity(0.38))
                         .frame(width: 24)
 
-                    Text(entry.initials)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(entry.textColor)
+                    if let url = entry.avatarURL {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Text(entry.initials)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(entry.textColor)
+                        }
                         .frame(width: 34, height: 34)
-                        .background(entry.color, in: Circle())
+                        .clipShape(Circle())
+                    } else {
+                        Text(entry.initials)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(entry.textColor)
+                            .frame(width: 34, height: 34)
+                            .background(entry.color, in: Circle())
+                    }
 
                     VStack(alignment: .leading, spacing: 5) {
                         Text(entry.name)
@@ -274,7 +304,17 @@ struct LeaderboardTab: View {
                             .foregroundStyle(.white.opacity(0.38))
                             .frame(width: 24)
 
-                        if let image = contact.thumbnailImage {
+                        if let avatarURL = contact.profileAvatarURL {
+                            AsyncImage(url: avatarURL) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Text(contact.initials)
+                                    .font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                                    .frame(width: 34, height: 34)
+                                    .background(contact.avatarColor, in: Circle())
+                            }
+                            .frame(width: 34, height: 34).clipShape(Circle())
+                        } else if let image = contact.thumbnailImage {
                             Image(uiImage: image)
                                 .resizable().scaledToFill()
                                 .frame(width: 34, height: 34).clipShape(Circle())

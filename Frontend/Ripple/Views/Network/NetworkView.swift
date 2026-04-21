@@ -11,7 +11,7 @@ struct NetworkView: View {
     var body: some View {
 
         TabView(selection: $selectedTab) {
-            Tab("Network", systemImage: "circle.grid.3x3", value: .network) {
+            Tab("Network", systemImage: "network", value: .network) {
                 tabPage(tab: .network) {
                     RippleWebTab(provider: provider, selectedContact: $selectedContact)
                 }
@@ -37,10 +37,7 @@ struct NetworkView: View {
         }
         .tint(.white)
         .sheet(item: $selectedContact) { contact in
-            ContactDetailSheet(contact: contact, onViewProfile: {
-                selectedContact = nil
-                withAnimation { selectedTab = .profile }
-            })
+            ContactDetailSheet(contact: contact, userPhoneNumber: appState.userPhoneNumber)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(
@@ -78,22 +75,14 @@ struct NetworkView: View {
 
     private func header(for tab: NetworkTab) -> some View {
         HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(tab.title)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(.white)
-
-                Text(tab.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-
+            Text(tab.title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.white)
             Spacer()
-
             Button {
                 withAnimation { appState.currentScreen = .contactList }
             } label: {
-                Text("+ Rally")
+                Label("Rally", systemImage: "megaphone.fill")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)

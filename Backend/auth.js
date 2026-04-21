@@ -49,7 +49,6 @@ export const auth = betterAuth({
         const verification = await twilioClient.verify.v2
           .services(verifyServiceSid)
           .verifications.create({ to: phoneNumber, channel: "sms" });
-        console.log(`[OTP] Verification sent to ${phoneNumber}: ${verification.status}`);
       },
       verifyOTP: async ({ phoneNumber, code }, ctx) => {
         const check = await twilioClient.verify.v2
@@ -65,6 +64,5 @@ export const auth = betterAuth({
         getTempName: (phone) => phone,
       },
     }),
-  ],
-  disableCSRFCheck: true,
+  ]
 });

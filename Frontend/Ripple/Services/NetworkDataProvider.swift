@@ -11,10 +11,14 @@ class NetworkDataProvider {
     var currentUserRank: Int?
     var currentUserRallyCount: Int = 0
     var stats: NetworkService.StatsResponse?
+    var userProfile: NetworkService.ProfileResponse?
     var isLoading = false
 
     // Tracks which device contacts have been rallied (synced from backend + local)
     var ralliedContactIDs: Set<String> = []
+
+    // Ripple user profiles keyed by normalized phone (last 10 digits)
+    var contactProfilesByPhone: [String: NetworkService.ContactProfile] = [:]
 
     init(appState: AppState, contactsManager: ContactsManager) {
         self.appState = appState
@@ -33,12 +37,14 @@ class NetworkDataProvider {
         async let ralliesTask = try? NetworkService.getRallies(token: token)
         async let leaderboardTask = try? NetworkService.getLeaderboard(token: token)
         async let statsTask = try? NetworkService.getStats(token: token)
+        async let profileTask = try? NetworkService.getProfile(token: token)
 
-        let (ralliesResult, leaderboardResult, statsResult) = await (ralliesTask, leaderboardTask, statsTask)
+        let (ralliesResult, leaderboardResult, statsResult, profileResult) = await (ralliesTask, leaderboardTask, statsTask, profileTask)
 
         if let rallies = ralliesResult {
             backendRallies = rallies.rallies
             currentUserRallyCount = rallies.total
+            contactProfilesByPhone = rallies.contactProfiles ?? [:]
             syncRalliedContactIDs(from: rallies.rallies)
         }
 
@@ -52,6 +58,10 @@ class NetworkDataProvider {
 
         if let s = statsResult {
             stats = s
+        }
+
+        if let p = profileResult {
+            userProfile = p
         }
     }
 
@@ -100,11 +110,21 @@ class NetworkDataProvider {
             .filter { ralliedContactIDs.contains($0.id) }
             .enumerated()
             .map { index, contact in
-                NetworkContact(
+                var nc = NetworkContact(
                     id: contact.id,
                     rippleContact: contact,
                     avatarColor: NetworkColors.avatarColor(forIndex: index)
                 )
+                if let phone = contact.primaryPhoneNumber {
+                    let normalized = normalizePhone(phone)
+                    if let profile = contactProfilesByPhone[normalized] {
+                        nc.profileName = profile.name
+                        if let urlStr = profile.avatarUrl {
+                            nc.profileAvatarURL = URL(string: urlStr)
+                        }
+                    }
+                }
+                return nc
             }
     }
 
@@ -137,15 +157,18 @@ class NetworkDataProvider {
 
     var leaderboardEntries: [LeaderboardEntry] {
         leaderboard.enumerated().map { index, entry in
-            LeaderboardEntry(
+            let displayName = entry.isCurrentUser ? (userDisplayName ?? "You") : entry.name
+            let avatarUrlString = entry.isCurrentUser ? userProfile?.avatarUrl : entry.avatarUrl
+            return LeaderboardEntry(
                 id: entry.userId,
-                name: entry.isCurrentUser ? "You" : entry.name,
-                initials: initials(for: entry.isCurrentUser ? "You" : entry.name),
+                name: displayName,
+                initials: initials(for: displayName),
                 rallyCount: entry.rallyCount,
                 color: entry.isCurrentUser ? .white : NetworkColors.avatarColor(forIndex: index),
                 textColor: entry.isCurrentUser ? NetworkColors.darkBlue : .white,
                 isUser: entry.isCurrentUser,
-                rank: entry.rank
+                rank: entry.rank,
+                avatarURL: avatarUrlString.flatMap { URL(string: $0) }
             )
         }
     }
@@ -171,6 +194,25 @@ class NetworkDataProvider {
     var progressFraction: Double {
         guard goalTarget > 0 else { return 0 }
         return min(Double(ralliedCount) / Double(goalTarget), 1.0)
+    }
+
+    // MARK: - User profile helpers
+
+    var userDisplayName: String? {
+        guard let name = userProfile?.name, !name.isEmpty else { return nil }
+        return name
+    }
+
+    var userAvatarURL: URL? {
+        guard let urlString = userProfile?.avatarUrl else { return nil }
+        return URL(string: urlString)
+    }
+
+    var userInitials: String {
+        if let name = userDisplayName {
+            return initials(for: name)
+        }
+        return "YOU"
     }
 
     // MARK: - Helpers

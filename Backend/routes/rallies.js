@@ -33,6 +33,30 @@ router.get("/", async (req, res) => {
     .sort({ createdAt: -1 })
     .toArray();
 
+  // Look up Ripple profiles for rallied phone numbers
+  const uniquePhones = [...new Set(rallies.map((r) => r.contactPhone).filter(Boolean))];
+  const normalizePhone = (p) => p.replace(/\D/g, "").slice(-10);
+
+  const users = await db
+    .collection("user")
+    .find({ phoneNumber: { $in: uniquePhones } })
+    .toArray();
+
+  const baseURL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3005}`;
+  const contactProfiles = {};
+  for (const user of users) {
+    const phone = user.phoneNumber;
+    if (!phone) continue;
+    const normalized = normalizePhone(phone);
+    const hasName = user.name && !user.name.startsWith("+");
+    contactProfiles[normalized] = {
+      name: hasName ? user.name : null,
+      avatarUrl: user.avatarFileId
+        ? `${baseURL}/api/profile/avatar/${user._id.toString()}`
+        : null,
+    };
+  }
+
   return res.json({
     rallies: rallies.map((n) => ({
       id: n._id.toString(),
@@ -41,6 +65,7 @@ router.get("/", async (req, res) => {
       createdAt: n.createdAt,
     })),
     total: rallies.length,
+    contactProfiles,
   });
 });
 

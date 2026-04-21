@@ -1,13 +1,21 @@
+import MessageUI
 import SwiftUI
 import UIKit
 
 struct ContactDetailSheet: View {
     let contact: NetworkContact
-    var onViewProfile: (() -> Void)?
+    let userPhoneNumber: String
+
+    @State private var showMessageComposer = false
+
+    private var messageBody: String {
+        let electionPhrase = contact.upcomingElection.map { "the \($0.name)" } ?? "the upcoming election"
+        let link = DeepLinkGenerator.inviteLink(forUser: userPhoneNumber)
+        return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(link)"
+    }
 
     var body: some View {
         VStack(spacing: 20) {
-            // Contact header
             HStack(spacing: 14) {
                 avatar
                 VStack(alignment: .leading, spacing: 2) {
@@ -24,33 +32,27 @@ struct ContactDetailSheet: View {
                 Spacer()
             }
 
-            // Contact details
             detailsSection
 
-            // Actions
-            HStack(spacing: 10) {
-                Button(action: {}) {
-                    Text("Send Reminder")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(.white.opacity(0.18), lineWidth: 1)
-                        )
-                }
-
+            if let phone = contact.primaryPhoneNumber, MFMessageComposeViewController.canSendText() {
                 Button {
-                    onViewProfile?()
+                    showMessageComposer = true
                 } label: {
-                    Text("View Profile")
+                    Text("Send Reminder")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(NetworkColors.darkBlue)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
                         .background(.white, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .sheet(isPresented: $showMessageComposer) {
+                    MessageComposerView(
+                        isPresented: $showMessageComposer,
+                        recipients: [phone],
+                        messageBody: messageBody,
+                        onResult: { _ in }
+                    )
+                    .ignoresSafeArea()
                 }
             }
         }
@@ -63,7 +65,17 @@ struct ContactDetailSheet: View {
 
     private var avatar: some View {
         Group {
-            if let image = contact.thumbnailImage {
+            if let avatarURL = contact.profileAvatarURL {
+                AsyncImage(url: avatarURL) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Text(contact.initials)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(contact.avatarColor)
+                }
+            } else if let image = contact.thumbnailImage {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()

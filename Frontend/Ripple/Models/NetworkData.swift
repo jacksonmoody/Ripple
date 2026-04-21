@@ -17,15 +17,6 @@ enum NetworkTab: String, CaseIterable {
         case .profile: "Profile"
         }
     }
-
-    var subtitle: String {
-        switch self {
-        case .network: "Watch your network grow"
-        case .impact: "Track your voting impact"
-        case .leaderboard: "Top influencers in your network"
-        case .profile: "Your account"
-        }
-    }
 }
 
 // MARK: - Network Contact
@@ -35,12 +26,28 @@ struct NetworkContact: Identifiable {
     let rippleContact: RippleContact
     let avatarColor: Color
 
-    var fullName: String { rippleContact.fullName }
-    var initials: String { rippleContact.initials }
+    var profileName: String?
+    var profileAvatarURL: URL?
+
+    var fullName: String { profileName ?? rippleContact.fullName }
+
+    var initials: String {
+        if let name = profileName {
+            let parts = name.split(separator: " ")
+            let first = parts.first.flatMap { $0.first }.map(String.init) ?? ""
+            let last = parts.count > 1 ? parts.last.flatMap { $0.first }.map(String.init) ?? "" : ""
+            let result = first + last
+            return result.isEmpty ? rippleContact.initials : result.uppercased()
+        }
+        return rippleContact.initials
+    }
+
     var upcomingElection: Election? { rippleContact.upcomingElection }
     var primaryPhoneNumber: String? { rippleContact.primaryPhoneNumber }
     var smartMatchScore: Int { rippleContact.smartMatchScore }
     var thumbnailImage: UIImage? { rippleContact.thumbnailImage }
+
+    var hasRippleProfile: Bool { profileName != nil || profileAvatarURL != nil }
 }
 
 // MARK: - Leaderboard
@@ -54,6 +61,7 @@ struct LeaderboardEntry: Identifiable {
     let textColor: Color
     let isUser: Bool
     var rank: Int
+    var avatarURL: URL?
 }
 
 // MARK: - Colors

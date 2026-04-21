@@ -35,9 +35,15 @@ enum NetworkService {
         let createdAt: String
     }
 
+    struct ContactProfile: Decodable {
+        let name: String?
+        let avatarUrl: String?
+    }
+
     struct RalliesResponse: Decodable {
         let rallies: [RallyEntry]
         let total: Int
+        let contactProfiles: [String: ContactProfile]?
     }
 
     static func getRallies(token: String) async throws -> RalliesResponse {
@@ -61,6 +67,7 @@ enum NetworkService {
         let name: String
         let rallyCount: Int
         let isCurrentUser: Bool
+        let avatarUrl: String?
     }
 
     struct CurrentUserStats: Decodable {
@@ -211,7 +218,7 @@ enum NetworkServiceError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .requestFailed: return "Network request failed"
+        case .requestFailed: return "Request failed. Please try again."
         }
     }
 }

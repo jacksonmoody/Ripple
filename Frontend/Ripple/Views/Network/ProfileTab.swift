@@ -4,10 +4,8 @@ import UIKit
 
 struct ProfileTab: View {
     @Bindable var appState: AppState
-    let provider: NetworkDataProvider
+    @Bindable var provider: NetworkDataProvider
 
-    @State private var profile: NetworkService.ProfileResponse?
-    @State private var isLoading = true
     @State private var isEditingName = false
     @State private var nameInput = ""
     @State private var selectedPhoto: PhotosPickerItem?
@@ -38,9 +36,6 @@ struct ProfileTab: View {
                     .padding(.top, 24)
                     .padding(.bottom, 20)
             }
-        }
-        .task {
-            await fetchProfile()
         }
         .alert("Edit Name", isPresented: $isEditingName) {
             TextField("Your name", text: $nameInput)
@@ -74,7 +69,7 @@ struct ProfileTab: View {
                             .frame(width: 80, height: 80)
                             .clipShape(Circle())
                             .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 2))
-                    } else if let avatarUrl = profile?.avatarUrl, let url = URL(string: avatarUrl) {
+                    } else if let avatarUrl = provider.userProfile?.avatarUrl, let url = URL(string: avatarUrl) {
                         AsyncImage(url: url) { phase in
                             switch phase {
                             case .success(let image):
@@ -114,7 +109,7 @@ struct ProfileTab: View {
 
             // Name
             VStack(spacing: 4) {
-                if let name = profile?.name, !name.isEmpty {
+                if let name = provider.userProfile?.name, !name.isEmpty {
                     Text(name)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
@@ -125,13 +120,13 @@ struct ProfileTab: View {
                 }
 
                 Button {
-                    nameInput = profile?.name ?? ""
+                    nameInput = provider.userProfile?.name ?? ""
                     isEditingName = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil")
                             .font(.system(size: 11))
-                        Text(profile?.name != nil ? "Edit name" : "Add name")
+                        Text(provider.userProfile?.name != nil ? "Edit name" : "Add name")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.5))
@@ -171,8 +166,8 @@ struct ProfileTab: View {
                 .tracking(0.8)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 9) {
-                statCard(value: "\(profile?.rallyCount ?? provider.ralliedCount)", label: "Total rallies")
-                statCard(value: "\(profile?.uniqueContactsRallied ?? 0)", label: "People rallied")
+                statCard(value: "\(provider.userProfile?.rallyCount ?? provider.ralliedCount)", label: "Total rallies")
+                statCard(value: "\(provider.userProfile?.uniqueContactsRallied ?? 0)", label: "People rallied")
                 statCard(value: provider.daysToElection.map { "\($0)" } ?? "--", label: "Days to election")
                 statCard(value: memberSince, label: "Member since")
             }
@@ -212,7 +207,7 @@ struct ProfileTab: View {
 
                 Divider().background(.white.opacity(0.08))
 
-                infoRow(icon: "person.fill", label: "Name", value: profile?.name ?? "Not set")
+                infoRow(icon: "person.fill", label: "Name", value: provider.userProfile?.name ?? "Not set")
 
                 Divider().background(.white.opacity(0.08))
 
@@ -271,8 +266,12 @@ struct ProfileTab: View {
 
     // MARK: - Helpers
 
+    private var profile: NetworkService.ProfileResponse? {
+        provider.userProfile
+    }
+
     private var avatarInitials: String {
-        if let name = profile?.name, !name.isEmpty {
+        if let name = provider.userProfile?.name, !name.isEmpty {
             let parts = name.split(separator: " ")
             let first = parts.first?.first.map(String.init) ?? ""
             let last = parts.count > 1 ? parts.last?.first.map(String.init) ?? "" : ""
@@ -282,11 +281,11 @@ struct ProfileTab: View {
     }
 
     private var displayPhone: String {
-        profile?.phoneNumber ?? appState.userPhoneNumber
+        provider.userProfile?.phoneNumber ?? appState.userPhoneNumber
     }
 
     private var memberSince: String {
-        guard let dateString = profile?.createdAt else { return "--" }
+        guard let dateString = provider.userProfile?.createdAt else { return "--" }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let date = formatter.date(from: dateString) ?? {
@@ -301,22 +300,12 @@ struct ProfileTab: View {
 
     // MARK: - Network
 
-    private func fetchProfile() async {
-        isLoading = true
-        defer { isLoading = false }
-
-        let token = appState.sessionToken
-        guard !token.isEmpty else { return }
-
-        profile = try? await NetworkService.getProfile(token: token)
-    }
-
     private func saveName() async {
         let token = appState.sessionToken
         guard !token.isEmpty, !nameInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
         if let result = try? await NetworkService.updateName(name: nameInput, token: token) {
-            profile = NetworkService.ProfileResponse(
+            provider.userProfile = NetworkService.ProfileResponse(
                 id: profile?.id ?? appState.userId,
                 name: result.name,
                 phoneNumber: profile?.phoneNumber,
@@ -329,8 +318,6 @@ struct ProfileTab: View {
         }
     }
 
-    // MARK: - Photo Upload
-
     private func handlePhotoSelection() async {
         guard let selectedPhoto else { return }
 
@@ -339,7 +326,6 @@ struct ProfileTab: View {
 
         guard let data = try? await selectedPhoto.loadTransferable(type: Data.self) else { return }
 
-        // Compress to JPEG
         guard let uiImage = UIImage(data: data) else { return }
         let maxSize: CGFloat = 800
         let scale = min(maxSize / uiImage.size.width, maxSize / uiImage.size.height, 1.0)
@@ -351,10 +337,8 @@ struct ProfileTab: View {
         }
         guard let jpegData = resized.jpegData(compressionQuality: 0.8) else { return }
 
-        // Show immediately
         avatarImage = resized
 
-        // Upload to backend
         let token = appState.sessionToken
         guard !token.isEmpty else { return }
 
@@ -363,7 +347,7 @@ struct ProfileTab: View {
             mimeType: "image/jpeg",
             token: token
         ) {
-            profile = NetworkService.ProfileResponse(
+            provider.userProfile = NetworkService.ProfileResponse(
                 id: profile?.id ?? appState.userId,
                 name: profile?.name,
                 phoneNumber: profile?.phoneNumber,

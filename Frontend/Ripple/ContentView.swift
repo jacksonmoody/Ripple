@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var appState = AppState()
     @State private var contactsManager = ContactsManager()
+    @State private var dataProvider: NetworkDataProvider?
     @State private var isCheckingSession = true
 
     var body: some View {
@@ -31,20 +32,25 @@ struct ContentView: View {
                 .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
             case .contactList:
-                ContactListView(appState: appState, contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .network }
+                if let provider = dataProvider {
+                    ContactListView(appState: appState, contactsManager: contactsManager, provider: provider) {
+                        withAnimation { appState.currentScreen = .network }
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
                 }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
 
             case .network:
-                NetworkView(appState: appState, contactsManager: contactsManager)
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                if let provider = dataProvider {
+                    NetworkView(appState: appState, contactsManager: contactsManager, provider: provider)
+                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                }
             }
             }
         }
         .animation(.easeInOut(duration: 0.35), value: appState.currentScreen)
         .preferredColorScheme(.light)
         .task {
+            dataProvider = NetworkDataProvider(appState: appState, contactsManager: contactsManager)
             if appState.hasSavedSession {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)
                 if valid {

@@ -11,7 +11,6 @@ struct ImpactTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Big animated number
                 VStack(spacing: 2) {
                     Text("\(displayedCount)")
                         .font(.system(size: 96, weight: .heavy))

@@ -13,6 +13,9 @@ class NetworkDataProvider {
     var stats: NetworkService.StatsResponse?
     var isLoading = false
 
+    // Tracks which device contacts have been rallied (synced from backend + local)
+    var ralliedContactIDs: Set<String> = []
+
     init(appState: AppState, contactsManager: ContactsManager) {
         self.appState = appState
         self.contactsManager = contactsManager
@@ -35,13 +38,16 @@ class NetworkDataProvider {
 
         if let rallies = ralliesResult {
             backendRallies = rallies.rallies
-            appState.ralliedCount = rallies.total
+            currentUserRallyCount = rallies.total
+            syncRalliedContactIDs(from: rallies.rallies)
         }
 
         if let lb = leaderboardResult {
             leaderboard = lb.leaderboard
             currentUserRank = lb.currentUser.rank
-            currentUserRallyCount = lb.currentUser.rallyCount
+            if currentUserRallyCount == 0 {
+                currentUserRallyCount = lb.currentUser.rallyCount
+            }
         }
 
         if let s = statsResult {
@@ -49,12 +55,49 @@ class NetworkDataProvider {
         }
     }
 
-    // MARK: - Local rallied contacts (matched from device contacts)
+    // MARK: - Record new rallies
+
+    func recordRallies(_ contacts: [RippleContact]) {
+        ralliedContactIDs.formUnion(contacts.map(\.id))
+        currentUserRallyCount += contacts.count
+
+        Task {
+            let entries = contacts.map { contact in
+                NetworkService.RecordRallyContact(
+                    name: contact.fullName,
+                    phone: contact.primaryPhoneNumber ?? ""
+                )
+            }
+            try? await NetworkService.recordRallies(
+                contacts: entries,
+                token: appState.sessionToken
+            )
+        }
+    }
+
+    // MARK: - Sync backend rallies to local contact IDs
+
+    private func syncRalliedContactIDs(from rallies: [NetworkService.RallyEntry]) {
+        let ralliedPhones = Set(rallies.map { normalizePhone($0.contactPhone) })
+        var matchedIDs = ralliedContactIDs
+        for contact in contactsManager.contacts {
+            guard let phone = contact.primaryPhoneNumber else { continue }
+            if ralliedPhones.contains(normalizePhone(phone)) {
+                matchedIDs.insert(contact.id)
+            }
+        }
+        ralliedContactIDs = matchedIDs
+    }
+
+    private func normalizePhone(_ phone: String) -> String {
+        phone.filter(\.isNumber).suffix(10).description
+    }
+
+    // MARK: - Rallied contacts (matched from device contacts)
 
     var ralliedContacts: [NetworkContact] {
-        let ralliedIDs = appState.ralliedContactIDs
-        let matched = contactsManager.contacts
-            .filter { ralliedIDs.contains($0.id) }
+        contactsManager.contacts
+            .filter { ralliedContactIDs.contains($0.id) }
             .enumerated()
             .map { index, contact in
                 NetworkContact(
@@ -63,14 +106,10 @@ class NetworkDataProvider {
                     avatarColor: NetworkColors.avatarColor(forIndex: index)
                 )
             }
-        return matched
     }
 
     var ralliedCount: Int {
-        if currentUserRallyCount > 0 {
-            return currentUserRallyCount
-        }
-        return appState.ralliedCount
+        currentUserRallyCount
     }
 
     // MARK: - Election stats

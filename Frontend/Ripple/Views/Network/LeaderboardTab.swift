@@ -35,10 +35,6 @@ struct LeaderboardTab: View {
                     ralliedBreakdown
                         .padding(.horizontal, 18)
                         .padding(.top, 12)
-
-                    inviteCallout
-                        .padding(.horizontal, 18)
-                        .padding(.top, 12)
                 }
 
                 // CTA
@@ -306,32 +302,7 @@ struct LeaderboardTab: View {
             RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.08))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.1), lineWidth: 1))
         )
-    }
-
-    // MARK: - Invite Callout
-
-    private var inviteCallout: some View {
-        HStack(spacing: 13) {
-            ZStack {
-                Circle().fill(.white.opacity(0.2)).frame(width: 38, height: 38)
-                    .overlay(Circle().stroke(.white.opacity(0.45), lineWidth: 1.5))
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Invite friends to Ripple")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
-                Text("See how your network compares")
-                    .font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 13).padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 13).fill(.white.opacity(0.12))
-                .overlay(RoundedRectangle(cornerRadius: 13).stroke(.white.opacity(0.25), lineWidth: 1))
-        )
-    }
+    } 
 
     // MARK: - CTA
 

@@ -12,8 +12,6 @@ enum AppScreen: Equatable {
 class AppState {
     var currentScreen: AppScreen = .landing
     var isAuthenticated = false
-    var ralliedCount = 0
-    var ralliedContactIDs: Set<String> = []
 
     var userPhoneNumber: String = "" {
         didSet { UserDefaults.standard.set(userPhoneNumber, forKey: "userPhoneNumber") }

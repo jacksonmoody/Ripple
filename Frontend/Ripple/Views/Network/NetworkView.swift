@@ -3,13 +3,12 @@ import SwiftUI
 struct NetworkView: View {
     @Bindable var appState: AppState
     @Bindable var contactsManager: ContactsManager
+    @Bindable var provider: NetworkDataProvider
 
     @State private var selectedTab: NetworkTab = .network
     @State private var selectedContact: NetworkContact?
-    @State private var dataProvider: NetworkDataProvider?
 
     var body: some View {
-        let provider = dataProvider ?? NetworkDataProvider(appState: appState, contactsManager: contactsManager)
 
         TabView(selection: $selectedTab) {
             Tab("Network", systemImage: "circle.grid.3x3", value: .network) {
@@ -53,10 +52,10 @@ struct NetworkView: View {
                 )
         }
         .task {
-            if dataProvider == nil {
-                dataProvider = NetworkDataProvider(appState: appState, contactsManager: contactsManager)
+            if contactsManager.contacts.isEmpty {
+                await contactsManager.fetchContacts()
             }
-            await dataProvider?.fetchAll()
+            await provider.fetchAll()
         }
     }
 

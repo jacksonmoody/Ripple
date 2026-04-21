@@ -4,6 +4,7 @@ import SwiftUI
 struct ContactListView: View {
     @Bindable var appState: AppState
     @Bindable var contactsManager: ContactsManager
+    @Bindable var provider: NetworkDataProvider
     var onRallySent: () -> Void
 
     @State private var selectedIDs: Set<String> = []
@@ -85,9 +86,9 @@ struct ContactListView: View {
                 }
                 Spacer()
 
-                if appState.ralliedCount > 0 {
+                if provider.ralliedCount > 0 {
                     VStack(spacing: 2) {
-                        Text("\(appState.ralliedCount)")
+                        Text("\(provider.ralliedCount)")
                             .font(.title3.bold())
                             .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
                         Text("rallied")
@@ -122,10 +123,10 @@ struct ContactListView: View {
                     ContactRowView(
                         contact: contact,
                         isSelected: selectedIDs.contains(contact.id),
-                        isRallied: appState.ralliedContactIDs.contains(contact.id)
+                        isRallied: provider.ralliedContactIDs.contains(contact.id)
                     )
                     .onTapGesture {
-                        guard !appState.ralliedContactIDs.contains(contact.id) else { return }
+                        guard !provider.ralliedContactIDs.contains(contact.id) else { return }
                         withAnimation(.easeInOut(duration: 0.15)) {
                             if selectedIDs.contains(contact.id) {
                                 selectedIDs.remove(contact.id)
@@ -180,24 +181,8 @@ struct ContactListView: View {
 
     private func handleMessageResult(_ result: MessageComposeResult) {
         if result == .sent {
-            let ralliedContactsList = selectedContacts
-            appState.ralliedCount += selectedIDs.count
-            appState.ralliedContactIDs.formUnion(selectedIDs)
+            provider.recordRallies(selectedContacts)
             selectedIDs.removeAll()
-
-            Task {
-                let contacts = ralliedContactsList.map { contact in
-                    NetworkService.RecordRallyContact(
-                        name: contact.fullName,
-                        phone: contact.primaryPhoneNumber ?? ""
-                    )
-                }
-                try? await NetworkService.recordRallies(
-                    contacts: contacts,
-                    token: appState.sessionToken
-                )
-            }
-
             onRallySent()
         }
     }

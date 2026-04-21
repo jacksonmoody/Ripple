@@ -112,16 +112,13 @@ struct RippleGraphView: View {
                             var mainPath = Path()
                             mainPath.addEllipse(in: mainRect)
                             context.fill(mainPath, with: .color(contact.avatarColor))
-                            let resolved = context.resolve(
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFill()
-                            )
+                            let resolved = context.resolve(Image(uiImage: img))
+                            let fillRect = aspectFillRect(imageSize: resolved.size, in: mainRect)
                             context.clipToLayer(opacity: 1) { ctx in
                                 var clipPath = Path()
                                 clipPath.addEllipse(in: mainRect)
                                 ctx.clip(to: clipPath)
-                                ctx.draw(resolved, in: mainRect)
+                                ctx.draw(resolved, in: fillRect)
                             }
                         } else {
                             var mainPath = Path()
@@ -173,17 +170,14 @@ struct RippleGraphView: View {
                     context.fill(youCircle, with: .color(.white))
 
                     if let avatarImg = userAvatarImage {
-                        let resolved = context.resolve(
-                            Image(uiImage: avatarImg)
-                                .resizable()
-                                .scaledToFill()
-                        )
+                        let resolved = context.resolve(Image(uiImage: avatarImg))
                         let avatarRect = CGRect(x: center.x - 26, y: center.y - 26, width: 52, height: 52)
+                        let fillRect = aspectFillRect(imageSize: resolved.size, in: avatarRect)
                         context.clipToLayer(opacity: 1) { ctx in
                             var clipPath = Path()
                             clipPath.addEllipse(in: avatarRect)
                             ctx.clip(to: clipPath)
-                            ctx.draw(resolved, in: avatarRect)
+                            ctx.draw(resolved, in: fillRect)
                         }
                     } else {
                         let fontSize: CGFloat = userInitials == "YOU" ? 10 : 14
@@ -262,6 +256,19 @@ struct RippleGraphView: View {
             let y = cy + CGFloat(sin(angle)) * r1
             return NodePosition(point: CGPoint(x: x, y: y), angle: angle)
         }
+    }
+
+    private func aspectFillRect(imageSize: CGSize, in target: CGRect) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0 else { return target }
+        let scale = max(target.width / imageSize.width, target.height / imageSize.height)
+        let w = imageSize.width * scale
+        let h = imageSize.height * scale
+        return CGRect(
+            x: target.midX - w / 2,
+            y: target.midY - h / 2,
+            width: w,
+            height: h
+        )
     }
 
     private func secondDegreePositions(around parent: CGPoint, parentAngle: Double, count: Int) -> [CGPoint] {

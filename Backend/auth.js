@@ -15,6 +15,9 @@ async function getMongoClient() {
   return client;
 }
 
+const client = await getMongoClient();
+const db = client.db();
+
 export async function getDb() {
   const c = await getMongoClient();
   return c.db();
@@ -23,6 +26,14 @@ export async function getDb() {
 export function getAvatarBucket() {
   return new GridFSBucket(db, { bucketName: "avatars" });
 }
+
+// Ensure indexes
+db.collection("rallies")
+  .createIndex({ userId: 1, createdAt: -1 })
+  .catch(() => {});
+db.collection("user")
+  .createIndex({ referredBy: 1 })
+  .catch(() => {});
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,

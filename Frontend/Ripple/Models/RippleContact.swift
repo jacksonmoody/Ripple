@@ -8,12 +8,20 @@ struct RippleContact: Identifiable {
     let smartMatchScore: Int
     let hasPhoto: Bool
 
-    var priorityScore: Int {
+    var closenessScore: Int {
         var score = 0
-        if upcomingElection != nil { score += 3 }
-        score += smartMatchScore
-        if hasPhoto { score += 1 }
+        if hasPhoto { score += 4 }
+        if contact.birthday != nil { score += 3 }
+        if !contact.contactRelations.isEmpty { score += 4 }
+        if !contact.postalAddresses.isEmpty { score += 2 }
+        if !contact.dates.isEmpty { score += 2 }
+        if contact.phoneNumbers.count > 1 { score += 1 }
+        if !contact.emailAddresses.isEmpty { score += 1 }
         return score
+    }
+
+    var priorityScore: Int {
+        closenessScore
     }
 
     var fullName: String {

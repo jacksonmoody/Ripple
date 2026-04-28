@@ -59,6 +59,10 @@ class ContactsManager {
             CNContactEmailAddressesKey as CNKeyDescriptor,
             CNContactThumbnailImageDataKey as CNKeyDescriptor,
             CNContactIdentifierKey as CNKeyDescriptor,
+            CNContactBirthdayKey as CNKeyDescriptor,
+            CNContactDatesKey as CNKeyDescriptor,
+            CNContactRelationsKey as CNKeyDescriptor,
+            CNContactPostalAddressesKey as CNKeyDescriptor,
         ]
 
         let request = CNContactFetchRequest(keysToFetch: keysToFetch)

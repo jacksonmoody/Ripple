@@ -58,6 +58,7 @@ struct ContentView: View {
         .preferredColorScheme(.light)
         .task {
             dataProvider = NetworkDataProvider(appState: appState, contactsManager: contactsManager)
+            guard isCheckingSession else { return }
             if appState.hasSavedSession {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)
                 if valid {

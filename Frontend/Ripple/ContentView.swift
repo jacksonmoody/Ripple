@@ -63,6 +63,14 @@ struct ContentView: View {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)
                 if valid {
                     appState.isAuthenticated = true
+
+                    if !appState.hasCompletedOnboarding {
+                        let profile = try? await NetworkService.getProfile(token: appState.sessionToken)
+                        if profile?.hasCompletedOnboarding == true {
+                            appState.hasCompletedOnboarding = true
+                        }
+                    }
+
                     if !appState.hasCompletedOnboarding {
                         if contactsManager.authorizationStatus == .authorized || contactsManager.authorizationStatus == .limited {
                             appState.currentScreen = .contactList

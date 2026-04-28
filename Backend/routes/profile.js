@@ -33,6 +33,8 @@ router.get("/", async (req, res) => {
   const rawEmail = user?.email || null;
   const email = rawEmail && !rawEmail.endsWith("@ripple.app") ? rawEmail : null;
 
+  const hasCompletedOnboarding = user?.hasCompletedOnboarding === true || rallyCount >= 3;
+
   return res.json({
     id: userId,
     name: user?.name || null,
@@ -45,6 +47,7 @@ router.get("/", async (req, res) => {
     avatarUrl: hasAvatar
       ? `${baseURL}/api/profile/avatar/${userId}`
       : null,
+    hasCompletedOnboarding,
   });
 });
 

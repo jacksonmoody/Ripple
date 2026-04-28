@@ -57,6 +57,9 @@ class NetworkDataProvider {
 
         if let p = profileResult {
             userProfile = p
+            if p.hasCompletedOnboarding == true && !appState.hasCompletedOnboarding {
+                appState.hasCompletedOnboarding = true
+            }
             await prefillProfileFromContacts(profile: p)
         }
     }

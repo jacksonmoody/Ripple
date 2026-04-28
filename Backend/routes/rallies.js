@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
 import { getDb } from "../auth.js";
 
 const router = Router();
@@ -20,6 +21,17 @@ router.post("/", async (req, res) => {
   }));
 
   await db.collection("rallies").insertMany(docs);
+
+  const totalRallies = await db
+    .collection("rallies")
+    .countDocuments({ userId: req.session.user.id });
+
+  if (totalRallies >= 3) {
+    await db.collection("user").updateOne(
+      { _id: new ObjectId(req.session.user.id), hasCompletedOnboarding: { $ne: true } },
+      { $set: { hasCompletedOnboarding: true } },
+    );
+  }
 
   return res.json({ success: true, count: docs.length });
 });

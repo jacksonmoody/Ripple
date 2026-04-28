@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ContactRowView: View {
     let contact: RippleContact
-    let isSelected: Bool
+    var isPreparing: Bool = false
     let isRallied: Bool
     var isSignedUp: Bool = false
 
@@ -42,9 +42,18 @@ struct ContactRowView: View {
 
             Spacer()
 
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
-                .foregroundStyle(isSelected ? Color(red: 0.25, green: 0.4, blue: 0.85) : .gray.opacity(0.4))
+            if isPreparing {
+                ProgressView()
+                    .tint(Color(red: 0.25, green: 0.4, blue: 0.85))
+            } else if isRallied {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.green)
+            } else {
+                Image(systemName: "paperplane.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 16)

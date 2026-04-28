@@ -144,6 +144,7 @@ enum NetworkService {
         let uniqueContactsRallied: Int
         let firstRallyAt: String?
         let avatarUrl: String?
+        let hasCompletedOnboarding: Bool?
     }
 
     static func getProfile(token: String) async throws -> ProfileResponse {

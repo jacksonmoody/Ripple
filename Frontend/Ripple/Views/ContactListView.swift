@@ -7,11 +7,11 @@ struct ContactListView: View {
     @Bindable var provider: NetworkDataProvider
     var onRallySent: () -> Void
 
-    @State private var selectedIDs: Set<String> = []
+    @State private var pendingContact: RippleContact?
     @State private var showMessageComposer = false
     @State private var searchText = ""
     @State private var inviteLink = ""
-    @State private var isPreparingMessage = false
+    @State private var preparingContactID: String?
     @State private var inviteError: String?
 
     private var isOnboarding: Bool { !appState.hasCompletedOnboarding }
@@ -28,15 +28,8 @@ struct ContactListView: View {
         }
     }
 
-    private var selectedContacts: [RippleContact] {
-        contactsManager.contacts.filter { selectedIDs.contains($0.id) }
-    }
-
     private var rallyMessageBody: String {
-        let election = selectedContacts
-            .compactMap(\.upcomingElection)
-            .first
-
+        let election = pendingContact?.upcomingElection
         let electionPhrase = election.map { "the \($0.name)" } ?? "the upcoming election"
         return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(inviteLink)"
     }
@@ -63,8 +56,6 @@ struct ContactListView: View {
 
             if isOnboarding && onboardingComplete {
                 continueButton
-            } else if !selectedIDs.isEmpty {
-                rallyButton
             }
         }
         .task {
@@ -75,7 +66,7 @@ struct ContactListView: View {
         .sheet(isPresented: $showMessageComposer) {
             MessageComposerView(
                 isPresented: $showMessageComposer,
-                recipients: selectedContacts.compactMap(\.primaryPhoneNumber),
+                recipients: [pendingContact?.primaryPhoneNumber].compactMap { $0 },
                 messageBody: rallyMessageBody,
                 onResult: handleMessageResult
             )
@@ -172,18 +163,15 @@ struct ContactListView: View {
                 ForEach(filteredContacts) { contact in
                     ContactRowView(
                         contact: contact,
-                        isSelected: selectedIDs.contains(contact.id),
+                        isPreparing: preparingContactID == contact.id,
                         isRallied: provider.ralliedContactIDs.contains(contact.id),
                         isSignedUp: provider.signedUpContactIDs.contains(contact.id)
                     )
                     .onTapGesture {
                         guard !provider.ralliedContactIDs.contains(contact.id) else { return }
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            if selectedIDs.contains(contact.id) {
-                                selectedIDs.remove(contact.id)
-                            } else {
-                                selectedIDs.insert(contact.id)
-                            }
+                        guard preparingContactID == nil else { return }
+                        if MFMessageComposeViewController.canSendText() {
+                            Task { await rallyContact(contact) }
                         }
                     }
 
@@ -205,35 +193,6 @@ struct ContactListView: View {
                 .font(.headline)
                 .foregroundStyle(.secondary)
         }
-    }
-
-    private var rallyButton: some View {
-        Button {
-            if MFMessageComposeViewController.canSendText() {
-                Task { await prepareMessageComposer() }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                if isPreparingMessage {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: "paperplane.fill")
-                    Text("Send Rally (\(selectedIDs.count))")
-                        .font(.headline)
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color(red: 0.25, green: 0.4, blue: 0.85), in: Capsule())
-            .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-        }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 16)
-        .disabled(isPreparingMessage)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-        .animation(.spring(response: 0.3), value: selectedIDs.isEmpty)
     }
 
     private var continueButton: some View {
@@ -258,23 +217,24 @@ struct ContactListView: View {
     }
 
     private func handleMessageResult(_ result: MessageComposeResult) {
-        if result == .sent {
-            provider.recordRallies(selectedContacts)
-            selectedIDs.removeAll()
+        if result == .sent, let contact = pendingContact {
+            provider.recordRallies([contact])
             if !isOnboarding {
                 onRallySent()
             }
         }
+        pendingContact = nil
     }
 
     @MainActor
-    private func prepareMessageComposer() async {
-        isPreparingMessage = true
-        defer { isPreparingMessage = false }
+    private func rallyContact(_ contact: RippleContact) async {
+        preparingContactID = contact.id
+        defer { preparingContactID = nil }
 
         do {
             let invite = try await NetworkService.getInvite(token: appState.sessionToken)
             inviteLink = invite.inviteUrl
+            pendingContact = contact
             showMessageComposer = true
         } catch {
             inviteError = "We couldn't create your invite link. Please try again."

@@ -9,7 +9,6 @@ class NetworkDataProvider {
     var backendRallies: [NetworkService.RallyEntry] = []
     var leaderboard: [NetworkService.LeaderboardEntryResponse] = []
     var currentUserRank: Int?
-    var currentUserRallyCount: Int = 0
     var stats: NetworkService.StatsResponse?
     var userProfile: NetworkService.ProfileResponse?
     var isLoading = false
@@ -43,7 +42,6 @@ class NetworkDataProvider {
 
         if let rallies = ralliesResult {
             backendRallies = rallies.rallies
-            currentUserRallyCount = rallies.total
             contactProfilesByPhone = rallies.contactProfiles ?? [:]
             syncRalliedContactIDs(from: rallies.rallies)
         }
@@ -66,9 +64,6 @@ class NetworkDataProvider {
     // MARK: - Record new rallies
 
     func recordRallies(_ contacts: [RippleContact]) {
-        ralliedContactIDs.formUnion(contacts.map(\.id))
-        currentUserRallyCount += contacts.count
-
         Task {
             let entries = contacts.map { contact in
                 NetworkService.RecordRallyContact(
@@ -80,6 +75,7 @@ class NetworkDataProvider {
                 contacts: entries,
                 token: appState.sessionToken
             )
+            await fetchAll()
         }
     }
 
@@ -125,10 +121,6 @@ class NetworkDataProvider {
                 }
                 return nc
             }
-    }
-
-    var ralliedCount: Int {
-        currentUserRallyCount
     }
 
     var signedUpContactIDs: Set<String> {
@@ -245,18 +237,9 @@ class NetworkDataProvider {
         let token = appState.sessionToken
         guard !token.isEmpty else { return }
 
-        if let result = try? await NetworkService.updateProfile(name: nameToSave, email: emailToSave, token: token) {
-            userProfile = NetworkService.ProfileResponse(
-                id: profile.id,
-                name: result.name ?? profile.name,
-                email: result.email ?? profile.email,
-                phoneNumber: profile.phoneNumber,
-                createdAt: profile.createdAt,
-                rallyCount: profile.rallyCount,
-                uniqueContactsRallied: profile.uniqueContactsRallied,
-                firstRallyAt: profile.firstRallyAt,
-                avatarUrl: profile.avatarUrl
-            )
+        _ = try? await NetworkService.updateProfile(name: nameToSave, email: emailToSave, token: token)
+        if let p = try? await NetworkService.getProfile(token: token) {
+            userProfile = p
         }
     }
 

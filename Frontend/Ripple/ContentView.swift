@@ -1,4 +1,5 @@
 import SwiftUI
+import Contacts
 
 struct ContentView: View {
     @Bindable var appState: AppState
@@ -9,43 +10,44 @@ struct ContentView: View {
     var body: some View {
         Group {
             if isCheckingSession {
-                ProgressView()
-                    .tint(Color(red: 0.25, green: 0.4, blue: 0.85))
+                RippleLoadingView()
             } else {
-            switch appState.currentScreen {
-            case .landing:
-                LandingView {
-                    withAnimation { appState.currentScreen = .phoneAuth }
-                }
-                .transition(.opacity)
-
-            case .phoneAuth:
-                PhoneAuthView(appState: appState) {
-                    submitPendingReferral()
-                    withAnimation { appState.currentScreen = .contactsPermission }
-                }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-
-            case .contactsPermission:
-                ContactsPermissionView(contactsManager: contactsManager) {
-                    withAnimation { appState.currentScreen = .network }
-                }
-                .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-
-            case .contactList:
-                if let provider = dataProvider {
-                    ContactListView(appState: appState, contactsManager: contactsManager, provider: provider) {
-                        withAnimation { appState.currentScreen = .network }
+                switch appState.currentScreen {
+                case .landing:
+                    LandingView {
+                        withAnimation { appState.currentScreen = .phoneAuth }
                     }
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
-                }
+                    .transition(.opacity)
 
-            case .network:
-                if let provider = dataProvider {
-                    NetworkView(appState: appState, contactsManager: contactsManager, provider: provider)
-                        .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                case .phoneAuth:
+                    PhoneAuthView(appState: appState) {
+                        submitPendingReferral()
+                        withAnimation { appState.currentScreen = .contactsPermission }
+                    }
+                    .transition(navigationTransition)
+
+                case .contactsPermission:
+                    ContactsPermissionView(contactsManager: contactsManager) {
+                        withAnimation {
+                            appState.currentScreen = appState.hasCompletedOnboarding ? .network : .contactList
+                        }
+                    }
+                    .transition(navigationTransition)
+
+                case .contactList:
+                    if let provider = dataProvider {
+                        ContactListView(appState: appState, contactsManager: contactsManager, provider: provider) {
+                            withAnimation { appState.currentScreen = .network }
+                        }
+                        .transition(navigationTransition)
+                    }
+
+                case .network:
+                    if let provider = dataProvider {
+                        NetworkView(appState: appState, contactsManager: contactsManager, provider: provider)
+                            .transition(navigationTransition)
+                    }
                 }
-            }
             }
         }
         .onOpenURL { url in
@@ -62,7 +64,15 @@ struct ContentView: View {
                 let valid = await AuthService.validateSession(token: appState.sessionToken)
                 if valid {
                     appState.isAuthenticated = true
-                    appState.currentScreen = .network
+                    if !appState.hasCompletedOnboarding {
+                        if contactsManager.authorizationStatus == .authorized || contactsManager.authorizationStatus == .limited {
+                            appState.currentScreen = .contactList
+                        } else {
+                            appState.currentScreen = .contactsPermission
+                        }
+                    } else {
+                        appState.currentScreen = .network
+                    }
                 } else {
                     appState.clearSession()
                 }
@@ -70,6 +80,13 @@ struct ContentView: View {
             isCheckingSession = false
         }
     }
+    private var navigationTransition: AnyTransition {
+        if appState.navigatingBack {
+            return .asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing))
+        }
+        return .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
+    }
+
     private func submitPendingReferral() {
         guard let ref = appState.pendingReferrerId, !ref.isEmpty else { return }
         let token = appState.sessionToken

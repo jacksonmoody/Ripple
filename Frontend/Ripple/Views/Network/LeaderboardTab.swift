@@ -316,7 +316,7 @@ struct LeaderboardTab: View {
             VStack(spacing: 6) {
                 scoreRow(
                     icon: "message.fill",
-                    label: "Texts sent",
+                    label: "Rallies sent",
                     count: textsSent,
                     multiplier: 10,
                     points: bd?.textsPoints ?? 0
@@ -330,7 +330,7 @@ struct LeaderboardTab: View {
                 )
                 scoreRow(
                     icon: "person.2.fill",
-                    label: "Second-degree referrals",
+                    label: "Second-degree rallies",
                     count: secondDegree,
                     multiplier: 5,
                     points: bd?.secondDegreePoints ?? 0

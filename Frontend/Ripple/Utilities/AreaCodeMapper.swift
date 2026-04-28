@@ -14,7 +14,6 @@ enum AreaCodeMapper {
         return areaCodeToState[areaCode]
     }
 
-    // Comprehensive US area code -> state abbreviation mapping
     static let areaCodeToState: [String: String] = [
         // Alabama
         "205": "AL", "251": "AL", "256": "AL", "334": "AL", "938": "AL",

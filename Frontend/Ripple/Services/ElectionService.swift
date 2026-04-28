@@ -2,7 +2,7 @@ import Foundation
 
 enum ElectionService {
 
-    // TODO: Replace with real election API (Google Civic Information, Democracy Works, etc.)
+    // TODO: Replace with Sway API
     static func upcomingElection(forState state: String) -> Election? {
         guard let entry = mockElections[state] else { return nil }
         return Election(name: entry.name, date: entry.date, state: state)

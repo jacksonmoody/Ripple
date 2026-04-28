@@ -15,22 +15,18 @@ struct ProfileTab: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                // Avatar + name
                 profileHeader
                     .padding(.horizontal, 18)
                     .padding(.top, 20)
 
-                // Stats cards
                 statsSection
                     .padding(.horizontal, 18)
                     .padding(.top, 16)
 
-                // Account info
                 accountSection
                     .padding(.horizontal, 18)
                     .padding(.top, 16)
 
-                // Sign out
                 signOutButton
                     .padding(.horizontal, 18)
                     .padding(.top, 24)
@@ -128,7 +124,7 @@ struct ProfileTab: View {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil")
                             .font(.system(size: 11))
-                        Text(provider.userProfile?.name != nil ? "Edit name" : "Add name")
+                        Text(provider.userProfile?.name != nil ? "Edit Display Name" : "Add Display Name")
                             .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundStyle(.white.opacity(0.5))
@@ -168,9 +164,10 @@ struct ProfileTab: View {
                 .tracking(0.8)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)], spacing: 9) {
-                statCard(value: "\(provider.userProfile?.rallyCount ?? provider.ralliedCount)", label: "Total rallies")
-                statCard(value: "\(provider.userProfile?.uniqueContactsRallied ?? 0)", label: "People rallied")
-                statCard(value: memberSince, label: "Member since")
+                statCard(value: "\(provider.stats?.textsSent ?? 0)", label: "Total rallies sent")
+                statCard(value: "\(provider.userProfile?.uniqueContactsRallied ?? 0)", label: "Unique rallies sent")
+                statCard(value: "\(provider.stats?.directSignups ?? 0)", label: "People signed up")
+                statCard(value: "\(provider.stats?.secondDegreeSignups ?? 0)", label: "Second-degree rallies")
             }
         }
     }
@@ -204,16 +201,11 @@ struct ProfileTab: View {
                 .tracking(0.8)
 
             VStack(spacing: 0) {
-                infoRow(icon: "phone.fill", label: "Phone", value: displayPhone)
-
-                Divider().background(.white.opacity(0.08))
-
                 infoRow(icon: "person.fill", label: "Name", value: provider.userProfile?.name ?? "Not set")
-
-                if let email = provider.userProfile?.email ?? provider.ownContactEmail {
-                    Divider().background(.white.opacity(0.08))
-                    infoRow(icon: "envelope.fill", label: "Email", value: email)
-                }
+                
+                Divider().background(.white.opacity(0.08))
+                
+                infoRow(icon: "phone.fill", label: "Phone", value: displayPhone)
 
                 Divider().background(.white.opacity(0.08))
 
@@ -310,18 +302,9 @@ struct ProfileTab: View {
         let token = appState.sessionToken
         guard !token.isEmpty, !nameInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        if let result = try? await NetworkService.updateProfile(name: nameInput, token: token) {
-            provider.userProfile = NetworkService.ProfileResponse(
-                id: profile?.id ?? appState.userId,
-                name: result.name ?? profile?.name,
-                email: profile?.email,
-                phoneNumber: profile?.phoneNumber,
-                createdAt: profile?.createdAt,
-                rallyCount: profile?.rallyCount ?? 0,
-                uniqueContactsRallied: profile?.uniqueContactsRallied ?? 0,
-                firstRallyAt: profile?.firstRallyAt,
-                avatarUrl: profile?.avatarUrl
-            )
+        _ = try? await NetworkService.updateProfile(name: nameInput, token: token)
+        if let p = try? await NetworkService.getProfile(token: token) {
+            provider.userProfile = p
         }
     }
 
@@ -349,22 +332,13 @@ struct ProfileTab: View {
         let token = appState.sessionToken
         guard !token.isEmpty else { return }
 
-        if let result = try? await NetworkService.uploadAvatar(
+        _ = try? await NetworkService.uploadAvatar(
             imageData: jpegData,
             mimeType: "image/jpeg",
             token: token
-        ) {
-            provider.userProfile = NetworkService.ProfileResponse(
-                id: profile?.id ?? appState.userId,
-                name: profile?.name,
-                email: profile?.email,
-                phoneNumber: profile?.phoneNumber,
-                createdAt: profile?.createdAt,
-                rallyCount: profile?.rallyCount ?? 0,
-                uniqueContactsRallied: profile?.uniqueContactsRallied ?? 0,
-                firstRallyAt: profile?.firstRallyAt,
-                avatarUrl: result.avatarUrl
-            )
+        )
+        if let p = try? await NetworkService.getProfile(token: token) {
+            provider.userProfile = p
         }
     }
 }

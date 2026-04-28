@@ -85,12 +85,12 @@ enum NetworkColors {
     static let glassBorder = Color.white.opacity(0.12)
 
     static let avatarPalette: [Color] = [
-        Color(red: 0.47, green: 0.67, blue: 1.0),   // blue
-        Color(red: 0.66, green: 0.55, blue: 1.0),   // purple
-        Color(red: 0.31, green: 0.78, blue: 1.0),   // cyan
-        Color(red: 0.31, green: 0.89, blue: 0.67),   // green
-        Color(red: 1.0, green: 0.77, blue: 0.35),    // gold
-        Color(red: 1.0, green: 0.55, blue: 0.55),    // coral
+        Color(red: 0.47, green: 0.67, blue: 1.0),
+        Color(red: 0.66, green: 0.55, blue: 1.0),
+        Color(red: 0.31, green: 0.78, blue: 1.0),
+        Color(red: 0.31, green: 0.89, blue: 0.67),
+        Color(red: 1.0, green: 0.77, blue: 0.35),
+        Color(red: 1.0, green: 0.55, blue: 0.55),   
     ]
 
     static let avatarTextColors: [Color] = [

@@ -11,6 +11,11 @@ struct ContactListView: View {
     @State private var showMessageComposer = false
     @State private var searchText = ""
 
+    private var isOnboarding: Bool { !appState.hasCompletedOnboarding }
+    private var ralliedSoFar: Int { provider.ralliedContactIDs.count }
+    private var requiredRallies: Int { AppState.requiredOnboardingRallies }
+    private var onboardingComplete: Bool { ralliedSoFar >= requiredRallies }
+
     private var filteredContacts: [RippleContact] {
         if searchText.isEmpty {
             return contactsManager.contacts
@@ -54,7 +59,9 @@ struct ContactListView: View {
             }
             .background(Color(red: 0.96, green: 0.97, blue: 1.0))
 
-            if !selectedIDs.isEmpty {
+            if isOnboarding && onboardingComplete {
+                continueButton
+            } else if !selectedIDs.isEmpty {
                 rallyButton
             }
         }
@@ -76,41 +83,63 @@ struct ContactListView: View {
 
     private var header: some View {
         VStack(spacing: 4) {
-            HStack {
-                Button {
-                    appState.currentScreen = .network
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Back")
-                            .font(.body)
-                    }
-                    .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
-                }
+            if isOnboarding {
+                VStack(spacing: 6) {
+                    Text("Rally \(requiredRallies) contacts to get started!")
+                        .font(.title3.bold())
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                Spacer()
+                    HStack(spacing: 8) {
+                        ProgressView(value: Double(ralliedSoFar), total: Double(requiredRallies))
+                            .tint(Color(red: 0.25, green: 0.4, blue: 0.85))
 
-                if provider.ralliedCount > 0 {
-                    VStack(spacing: 2) {
-                        Text("\(provider.ralliedCount)")
-                            .font(.title3.bold())
+                        Text("\(ralliedSoFar)/\(requiredRallies)")
+                            .font(.caption.bold())
                             .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
-                        Text("rallied")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
                     }
                 }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 4)
-
-            Text("Your Contacts")
-                .font(.title.bold())
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 20)
+                .padding(.top, 16)
                 .padding(.bottom, 8)
+            } else {
+                HStack {
+                    Button {
+                        appState.navigatingBack = true
+                        appState.currentScreen = .network
+                        DispatchQueue.main.async { appState.navigatingBack = false }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Back")
+                                .font(.body)
+                        }
+                        .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
+                    }
+
+                    Spacer()
+
+                    if (provider.userProfile?.rallyCount ?? 0) > 0 {
+                        VStack(spacing: 2) {
+                            Text("\(provider.userProfile?.rallyCount ?? 0)")
+                                .font(.title3.bold())
+                                .foregroundStyle(Color(red: 0.25, green: 0.4, blue: 0.85))
+                            Text("rallied")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 4)
+
+                Text("Your Contacts")
+                    .font(.title.bold())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
         }
     }
 
@@ -191,11 +220,34 @@ struct ContactListView: View {
         .animation(.spring(response: 0.3), value: selectedIDs.isEmpty)
     }
 
+    private var continueButton: some View {
+        Button {
+            appState.hasCompletedOnboarding = true
+            withAnimation { appState.currentScreen = .network }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.right")
+                Text("Continue to Ripple")
+                    .font(.headline)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color(red: 0.25, green: 0.4, blue: 0.85), in: Capsule())
+            .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 16)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
     private func handleMessageResult(_ result: MessageComposeResult) {
         if result == .sent {
             provider.recordRallies(selectedContacts)
             selectedIDs.removeAll()
-            onRallySent()
+            if !isOnboarding {
+                onRallySent()
+            }
         }
     }
 }

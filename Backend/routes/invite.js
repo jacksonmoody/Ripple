@@ -183,10 +183,21 @@ function renderMissingInvitePage(req) {
     canonicalUrl: `${origin}/invite`,
     body: `
       <main class="shell">
+        <div class="ripples" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         <section class="card">
-          <div class="mark">~</div>
+          <div class="mark">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
+              <path d="M4 10c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+              <path d="M4 18c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+              <path d="M4 26c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+            </svg>
+          </div>
           <p class="eyebrow">Ripple</p>
-          <h1>Invite not found</h1>
+          <h1>Invite Not Found</h1>
           <p class="copy">This invite link is missing or no longer valid.</p>
         </section>
       </main>
@@ -206,13 +217,19 @@ function renderInvitePage(req, invite) {
     canonicalUrl: safeInviteUrl,
     body: `
       <main class="shell">
+        <div class="ripples" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
         <section class="card">
-          <div class="ripples" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
+          <div class="mark">
+            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
+              <path d="M4 10c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+              <path d="M4 18c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+              <path d="M4 26c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+            </svg>
           </div>
-          <div class="mark">~</div>
           <p class="eyebrow">Ripple invite</p>
           <h1>${safeName} invited you to join Ripple</h1>
           <p class="copy">Join their network and help turn the tide.</p>
@@ -247,8 +264,8 @@ function renderPage({ title, description, canonicalUrl, body }) {
     <style>
       :root {
         color-scheme: light;
-        --blue: #405ccc;
-        --blue-dark: #1f348f;
+        --blue: #4066d9;
+        --blue-dark: #2640a6;
         --surface: #ffffff;
         --text: #16204a;
         --muted: #657092;
@@ -262,9 +279,7 @@ function renderPage({ title, description, canonicalUrl, body }) {
         margin: 0;
         min-height: 100vh;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background:
-          radial-gradient(circle at 50% 22%, rgba(64, 92, 204, 0.18), transparent 32rem),
-          linear-gradient(135deg, #f7f9ff, #edf2ff);
+        background: #f7f9ff;
         color: var(--text);
       }
 
@@ -273,43 +288,58 @@ function renderPage({ title, description, canonicalUrl, body }) {
         display: grid;
         place-items: center;
         padding: 24px;
+        position: relative;
       }
 
       .card {
         width: min(100%, 430px);
         position: relative;
-        overflow: hidden;
+        z-index: 2;
         padding: 44px 28px 32px;
-        border: 1px solid rgba(64, 92, 204, 0.12);
+        border: 1px solid rgba(64, 102, 217, 0.12);
         border-radius: 28px;
         background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 24px 70px rgba(31, 52, 143, 0.16);
         text-align: center;
       }
 
       .ripples {
         position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
+        z-index: 1;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 0;
+        height: 0;
         pointer-events: none;
       }
 
       .ripples span {
         position: absolute;
-        width: 140px;
-        height: 140px;
-        border: 2px solid rgba(64, 92, 204, 0.16);
+        top: 50%;
+        left: 50%;
+        width: 460px;
+        height: 460px;
+        margin-top: -230px;
+        margin-left: -230px;
+        border: 2px solid rgba(64, 102, 217, 0.14);
         border-radius: 999px;
-        animation: ripple 2.4s ease-out infinite;
+        animation: ripple 3s ease-out infinite;
       }
 
       .ripples span:nth-child(2) {
-        animation-delay: 0.35s;
+        width: 600px;
+        height: 600px;
+        margin-top: -300px;
+        margin-left: -300px;
+        animation-delay: 0.4s;
       }
 
       .ripples span:nth-child(3) {
-        animation-delay: 0.7s;
+        width: 740px;
+        height: 740px;
+        margin-top: -370px;
+        margin-left: -370px;
+        animation-delay: 0.8s;
       }
 
       .mark {
@@ -322,11 +352,7 @@ function renderPage({ title, description, canonicalUrl, body }) {
         margin: 0 auto 18px;
         border-radius: 999px;
         background: var(--blue);
-        color: white;
-        font-size: 42px;
-        line-height: 1;
-        font-weight: 700;
-        box-shadow: 0 18px 38px rgba(64, 92, 204, 0.24);
+        box-shadow: none;
       }
 
       .eyebrow {
@@ -378,22 +404,25 @@ function renderPage({ title, description, canonicalUrl, body }) {
       .primary {
         background: var(--blue);
         color: white;
-        box-shadow: 0 14px 28px rgba(64, 92, 204, 0.22);
+        box-shadow: none;
       }
 
       .secondary {
         color: var(--blue-dark);
-        background: rgba(64, 92, 204, 0.08);
+        background: rgba(64, 102, 217, 0.08);
       }
 
       @keyframes ripple {
         0% {
-          opacity: 0.72;
-          transform: scale(0.45);
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        30% {
+          opacity: 0.6;
         }
         100% {
           opacity: 0;
-          transform: scale(2.2);
+          transform: scale(1.1);
         }
       }
 

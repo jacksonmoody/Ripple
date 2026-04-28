@@ -11,6 +11,7 @@ import profileRouter from "./routes/profile.js";
 import avatarRouter from "./routes/avatar.js";
 import referralRouter from "./routes/referral.js";
 import inviteRouter from "./routes/invite.js";
+import appleAppSiteAssociationRouter from "./routes/apple-app-site-association.js";
 
 const app = express();
 const port = process.env.PORT || 3005;
@@ -25,6 +26,7 @@ app.use(
 // Better Auth handles its own routes
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
+app.use(appleAppSiteAssociationRouter);
 app.use(express.json());
 app.use(inviteRouter);
 

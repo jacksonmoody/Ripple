@@ -10,6 +10,9 @@ struct ContactListView: View {
     @State private var selectedIDs: Set<String> = []
     @State private var showMessageComposer = false
     @State private var searchText = ""
+    @State private var inviteLink = ""
+    @State private var isPreparingMessage = false
+    @State private var inviteError: String?
 
     private var isOnboarding: Bool { !appState.hasCompletedOnboarding }
     private var ralliedSoFar: Int { provider.ralliedContactIDs.count }
@@ -35,8 +38,7 @@ struct ContactListView: View {
             .first
 
         let electionPhrase = election.map { "the \($0.name)" } ?? "the upcoming election"
-        let link = DeepLinkGenerator.inviteLink(forUser: appState.userId)
-        return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(link)"
+        return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(inviteLink)"
     }
 
     var body: some View {
@@ -78,6 +80,14 @@ struct ContactListView: View {
                 onResult: handleMessageResult
             )
             .ignoresSafeArea()
+        }
+        .alert("Invite link unavailable", isPresented: Binding(
+            get: { inviteError != nil },
+            set: { if !$0 { inviteError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(inviteError ?? "Please try again.")
         }
     }
 
@@ -200,13 +210,18 @@ struct ContactListView: View {
     private var rallyButton: some View {
         Button {
             if MFMessageComposeViewController.canSendText() {
-                showMessageComposer = true
+                Task { await prepareMessageComposer() }
             }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "paperplane.fill")
-                Text("Send Rally (\(selectedIDs.count))")
-                    .font(.headline)
+                if isPreparingMessage {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "paperplane.fill")
+                    Text("Send Rally (\(selectedIDs.count))")
+                        .font(.headline)
+                }
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
@@ -216,6 +231,7 @@ struct ContactListView: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 16)
+        .disabled(isPreparingMessage)
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .animation(.spring(response: 0.3), value: selectedIDs.isEmpty)
     }
@@ -248,6 +264,20 @@ struct ContactListView: View {
             if !isOnboarding {
                 onRallySent()
             }
+        }
+    }
+
+    @MainActor
+    private func prepareMessageComposer() async {
+        isPreparingMessage = true
+        defer { isPreparingMessage = false }
+
+        do {
+            let invite = try await NetworkService.getInvite(token: appState.sessionToken)
+            inviteLink = invite.inviteUrl
+            showMessageComposer = true
+        } catch {
+            inviteError = "We couldn't create your invite link. Please try again."
         }
     }
 }

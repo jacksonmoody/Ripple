@@ -27,7 +27,7 @@ class AppState {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
 
-    var pendingReferrerId: String?
+    var pendingInviteCode: String?
 
     static let requiredOnboardingRallies = 3
 

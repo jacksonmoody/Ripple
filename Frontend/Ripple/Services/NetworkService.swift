@@ -228,16 +228,38 @@ enum NetworkService {
         }
     }
 
+    // MARK: - Invite
+
+    struct InviteResponse: Decodable {
+        let inviteCode: String
+        let inviteUrl: String
+        let publicInviteUrl: String
+        let appDeepLink: String
+    }
+
+    static func getInvite(token: String) async throws -> InviteResponse {
+        let url = URL(string: "\(baseURL)/api/invite/me")!
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw NetworkServiceError.requestFailed
+        }
+
+        return try JSONDecoder().decode(InviteResponse.self, from: data)
+    }
+
     // MARK: - Referral
 
-    static func submitReferral(referrerId: String, token: String) async throws {
+    static func submitReferral(inviteCode: String, token: String) async throws {
         let url = URL(string: "\(baseURL)/api/referral")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        let body = ["referrerId": referrerId]
+        let body = ["inviteCode": inviteCode]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (_, response) = try await URLSession.shared.data(for: request)

@@ -4,14 +4,16 @@ import UIKit
 
 struct ContactDetailSheet: View {
     let contact: NetworkContact
-    let userId: String
+    let sessionToken: String
 
     @State private var showMessageComposer = false
+    @State private var inviteLink = ""
+    @State private var isPreparingMessage = false
+    @State private var inviteError: String?
 
     private var messageBody: String {
         let electionPhrase = contact.upcomingElection.map { "the \($0.name)" } ?? "the upcoming election"
-        let link = DeepLinkGenerator.inviteLink(forUser: userId)
-        return "Hey, I've been thinking about \(electionPhrase) and wanted to remind you to vote in it. Join me on Ripple to help spread the word! \(link)"
+        return "Hey, I've been thinking about \(electionPhrase) and wanted to remind you to vote in it. Join me on Ripple to help spread the word! \(inviteLink)"
     }
 
     var body: some View {
@@ -36,15 +38,23 @@ struct ContactDetailSheet: View {
 
             if let phone = contact.primaryPhoneNumber, MFMessageComposeViewController.canSendText() {
                 Button {
-                    showMessageComposer = true
+                    Task { await prepareMessageComposer() }
                 } label: {
-                    Text("Send Reminder")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(NetworkColors.darkBlue)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 12))
+                    HStack(spacing: 8) {
+                        if isPreparingMessage {
+                            ProgressView()
+                                .tint(NetworkColors.darkBlue)
+                        } else {
+                            Text("Send Reminder")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                    }
+                    .foregroundStyle(NetworkColors.darkBlue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 12))
                 }
+                .disabled(isPreparingMessage)
                 .sheet(isPresented: $showMessageComposer) {
                     MessageComposerView(
                         isPresented: $showMessageComposer,
@@ -53,6 +63,14 @@ struct ContactDetailSheet: View {
                         onResult: { _ in }
                     )
                     .ignoresSafeArea()
+                }
+                .alert("Invite link unavailable", isPresented: Binding(
+                    get: { inviteError != nil },
+                    set: { if !$0 { inviteError = nil } }
+                )) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(inviteError ?? "Please try again.")
                 }
             }
         }
@@ -133,6 +151,20 @@ struct ContactDetailSheet: View {
             Text(value)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.white.opacity(0.8))
+        }
+    }
+
+    @MainActor
+    private func prepareMessageComposer() async {
+        isPreparingMessage = true
+        defer { isPreparingMessage = false }
+
+        do {
+            let invite = try await NetworkService.getInvite(token: sessionToken)
+            inviteLink = invite.inviteUrl
+            showMessageComposer = true
+        } catch {
+            inviteError = "We couldn't create your invite link. Please try again."
         }
     }
 }

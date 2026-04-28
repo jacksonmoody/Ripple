@@ -34,6 +34,12 @@ db.collection("rallies")
 db.collection("user")
   .createIndex({ referredBy: 1 })
   .catch(() => {});
+db.collection("user")
+  .createIndex(
+    { inviteCode: 1 },
+    { unique: true, partialFilterExpression: { inviteCode: { $type: "string" } } }
+  )
+  .catch(() => {});
 
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,

@@ -51,10 +51,8 @@ struct ContentView: View {
             }
         }
         .onOpenURL { url in
-            guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-                  let ref = components.queryItems?.first(where: { $0.name == "ref" })?.value,
-                  !ref.isEmpty else { return }
-            appState.pendingReferrerId = ref
+            guard let inviteCode = DeepLinkGenerator.inviteCode(from: url) else { return }
+            appState.pendingInviteCode = inviteCode
         }
         .animation(.easeInOut(duration: 0.35), value: appState.currentScreen)
         .preferredColorScheme(.light)
@@ -88,11 +86,11 @@ struct ContentView: View {
     }
 
     private func submitPendingReferral() {
-        guard let ref = appState.pendingReferrerId, !ref.isEmpty else { return }
+        guard let inviteCode = appState.pendingInviteCode, !inviteCode.isEmpty else { return }
         let token = appState.sessionToken
-        appState.pendingReferrerId = nil
+        appState.pendingInviteCode = nil
         Task {
-            try? await NetworkService.submitReferral(referrerId: ref, token: token)
+            try? await NetworkService.submitReferral(inviteCode: inviteCode, token: token)
         }
     }
 }

@@ -31,7 +31,7 @@ struct NetworkView: View {
         }
         .tint(.white)
         .sheet(item: $selectedContact) { contact in
-            ContactDetailSheet(contact: contact, userId: appState.userId)
+            ContactDetailSheet(contact: contact, sessionToken: appState.sessionToken)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(

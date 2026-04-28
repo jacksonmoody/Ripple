@@ -10,6 +10,7 @@ import statsRouter from "./routes/stats.js";
 import profileRouter from "./routes/profile.js";
 import avatarRouter from "./routes/avatar.js";
 import referralRouter from "./routes/referral.js";
+import inviteRouter from "./routes/invite.js";
 
 const app = express();
 const port = process.env.PORT || 3005;
@@ -25,6 +26,7 @@ app.use(
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
 app.use(express.json());
+app.use(inviteRouter);
 
 // Middleware: require authenticated session and attach to req.session
 async function requireSession(req, res, next) {

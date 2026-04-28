@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { auth } from "./auth.js";
 
@@ -25,6 +27,9 @@ app.use(
 
 // Better Auth handles its own routes
 app.all("/api/auth/*splat", toNodeHandler(auth));
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+app.use("/assets", express.static(join(__dirname, "assets")));
 
 app.use(appleAppSiteAssociationRouter);
 app.use(express.json());

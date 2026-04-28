@@ -190,11 +190,7 @@ function renderMissingInvitePage(req) {
         </div>
         <section class="card">
           <div class="mark">
-            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
-              <path d="M4 10c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-              <path d="M4 18c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-              <path d="M4 26c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-            </svg>
+            <img src="/assets/wave_transparent.png" alt="Ripple" width="36" height="36" />
           </div>
           <p class="eyebrow">Ripple</p>
           <h1>Invite Not Found</h1>
@@ -224,11 +220,7 @@ function renderInvitePage(req, invite) {
         </div>
         <section class="card">
           <div class="mark">
-            <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" width="36" height="36">
-              <path d="M4 10c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-              <path d="M4 18c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-              <path d="M4 26c2.3-3.5 4.7-3.5 7 0s4.7 3.5 7 0 4.7-3.5 7 0 4.7 3.5 7 0" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
-            </svg>
+            <img src="/assets/wave_transparent.png" alt="Ripple" width="36" height="36" />
           </div>
           <p class="eyebrow">Ripple invite</p>
           <h1>${safeName} invited you to join Ripple</h1>
@@ -353,6 +345,12 @@ function renderPage({ title, description, canonicalUrl, body }) {
         border-radius: 999px;
         background: var(--blue);
         box-shadow: none;
+      }
+
+      .mark img {
+        width: 36px;
+        height: auto;
+        object-fit: contain;
       }
 
       .eyebrow {

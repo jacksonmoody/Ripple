@@ -7,12 +7,13 @@ struct ContactListView: View {
     @Bindable var provider: NetworkDataProvider
     var onRallySent: () -> Void
 
-    @State private var selectedIDs: Set<String> = []
     @State private var showMessageComposer = false
     @State private var searchText = ""
     @State private var inviteLink = ""
     @State private var isPreparingMessage = false
     @State private var inviteError: String?
+    @State private var activeContact: RippleContact?
+    @State private var mismatchContactName: String?
 
     private var isOnboarding: Bool { !appState.hasCompletedOnboarding }
     private var ralliedSoFar: Int { provider.ralliedContactIDs.count }
@@ -28,15 +29,8 @@ struct ContactListView: View {
         }
     }
 
-    private var selectedContacts: [RippleContact] {
-        contactsManager.contacts.filter { selectedIDs.contains($0.id) }
-    }
-
     private var rallyMessageBody: String {
-        let election = selectedContacts
-            .compactMap(\.upcomingElection)
-            .first
-
+        let election = activeContact?.upcomingElection
         let electionPhrase = election.map { "the \($0.name)" } ?? "the upcoming election"
         return "Hey, I've been thinking about \(electionPhrase) and wanted to make sure you're planning to vote in it. Join me on Ripple to help spread the word! \(inviteLink)"
     }
@@ -63,8 +57,6 @@ struct ContactListView: View {
 
             if isOnboarding && onboardingComplete {
                 continueButton
-            } else if !selectedIDs.isEmpty {
-                rallyButton
             }
         }
         .task {
@@ -73,13 +65,15 @@ struct ContactListView: View {
             }
         }
         .sheet(isPresented: $showMessageComposer) {
-            MessageComposerView(
-                isPresented: $showMessageComposer,
-                recipients: selectedContacts.compactMap(\.primaryPhoneNumber),
-                messageBody: rallyMessageBody,
-                onResult: handleMessageResult
-            )
-            .ignoresSafeArea()
+            if let contact = activeContact {
+                MessageComposerView(
+                    isPresented: $showMessageComposer,
+                    recipients: [contact.primaryPhoneNumber].compactMap { $0 },
+                    messageBody: rallyMessageBody,
+                    onResult: { result, finalRecipients in handleMessageResult(result, finalRecipients: finalRecipients) }
+                )
+                .ignoresSafeArea()
+            }
         }
         .alert("Invite link unavailable", isPresented: Binding(
             get: { inviteError != nil },
@@ -88,6 +82,14 @@ struct ContactListView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(inviteError ?? "Please try again.")
+        }
+        .alert("Wrong recipient", isPresented: Binding(
+            get: { mismatchContactName != nil },
+            set: { if !$0 { mismatchContactName = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Seems like you didn't reach out to \(mismatchContactName ?? "the selected person")")
         }
     }
 
@@ -172,18 +174,16 @@ struct ContactListView: View {
                 ForEach(filteredContacts) { contact in
                     ContactRowView(
                         contact: contact,
-                        isSelected: selectedIDs.contains(contact.id),
+                        isSelected: false,
                         isRallied: provider.ralliedContactIDs.contains(contact.id),
                         isSignedUp: provider.signedUpContactIDs.contains(contact.id)
                     )
                     .onTapGesture {
                         guard !provider.ralliedContactIDs.contains(contact.id) else { return }
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            if selectedIDs.contains(contact.id) {
-                                selectedIDs.remove(contact.id)
-                            } else {
-                                selectedIDs.insert(contact.id)
-                            }
+                        guard !isPreparingMessage else { return }
+                        activeContact = contact
+                        if MFMessageComposeViewController.canSendText() {
+                            Task { await prepareMessageComposer() }
                         }
                     }
 
@@ -207,35 +207,6 @@ struct ContactListView: View {
         }
     }
 
-    private var rallyButton: some View {
-        Button {
-            if MFMessageComposeViewController.canSendText() {
-                Task { await prepareMessageComposer() }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                if isPreparingMessage {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Image(systemName: "paperplane.fill")
-                    Text("Send Rally (\(selectedIDs.count))")
-                        .font(.headline)
-                }
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color(red: 0.25, green: 0.4, blue: 0.85), in: Capsule())
-            .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-        }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 16)
-        .disabled(isPreparingMessage)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-        .animation(.spring(response: 0.3), value: selectedIDs.isEmpty)
-    }
-
     private var continueButton: some View {
         Button {
             appState.hasCompletedOnboarding = true
@@ -257,14 +228,28 @@ struct ContactListView: View {
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
-    private func handleMessageResult(_ result: MessageComposeResult) {
-        if result == .sent {
-            provider.recordRallies(selectedContacts)
-            selectedIDs.removeAll()
-            if !isOnboarding {
-                onRallySent()
-            }
+    private func handleMessageResult(_ result: MessageComposeResult, finalRecipients: [String]) {
+        guard let contact = activeContact else { return }
+        defer { activeContact = nil }
+
+        guard result == .sent else { return }
+
+        let expectedPhone = normalizePhone(contact.primaryPhoneNumber ?? "")
+        let sentPhones = finalRecipients.map { normalizePhone($0) }
+
+        guard sentPhones.contains(expectedPhone) else {
+            mismatchContactName = contact.fullName
+            return
         }
+
+        provider.recordRallies([contact])
+        if !isOnboarding {
+            onRallySent()
+        }
+    }
+
+    private func normalizePhone(_ phone: String) -> String {
+        phone.filter(\.isNumber).suffix(10).description
     }
 
     @MainActor

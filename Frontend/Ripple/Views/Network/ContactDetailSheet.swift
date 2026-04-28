@@ -60,7 +60,7 @@ struct ContactDetailSheet: View {
                         isPresented: $showMessageComposer,
                         recipients: [phone],
                         messageBody: messageBody,
-                        onResult: { _ in }
+                        onResult: { _, _ in }
                     )
                     .ignoresSafeArea()
                 }

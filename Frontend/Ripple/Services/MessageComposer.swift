@@ -5,7 +5,7 @@ struct MessageComposerView: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     var recipients: [String]
     var messageBody: String
-    var onResult: (MessageComposeResult) -> Void
+    var onResult: (MessageComposeResult, [String]) -> Void
 
     func makeUIViewController(context: Context) -> MFMessageComposeViewController {
         let controller = MFMessageComposeViewController()
@@ -32,7 +32,8 @@ struct MessageComposerView: UIViewControllerRepresentable {
             _ controller: MFMessageComposeViewController,
             didFinishWith result: MessageComposeResult
         ) {
-            parent.onResult(result)
+            let finalRecipients = controller.recipients ?? []
+            parent.onResult(result, finalRecipients)
             parent.isPresented = false
             controller.dismiss(animated: true)
         }
